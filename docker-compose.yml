@@ -1,0 +1,48 @@
+# Default: only the app runs in Docker, bound to localhost, behind the Nginx
+# already installed on the VPS (see deploy/nginx/host-site.conf).
+# Set COMPOSE_PROFILES=edge in .env to also run containerized Nginx + Certbot
+# on a server that has no host Nginx.
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  nginx:
+    profiles: [edge]
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      NGINX_ENVSUBST_FILTER: ^DOMAIN$
+    volumes:
+      - ./deploy/nginx/app.conf.template:/etc/nginx/templates/app.conf.template:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    # Reload every 6 h so renewed certificates are picked up.
+    command: /bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'
+
+  certbot:
+    profiles: [edge]
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
+
+volumes:
+  certbot-conf:
+  certbot-www:

@@ -32,9 +32,38 @@ Demo walkthrough: open the panel and the TV in two tabs, open `/karaoke?table=8`
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript only |
 
+## Deploy (Hostinger VPS, Docker + Nginx + Let's Encrypt)
+
+The app runs in Docker bound to `127.0.0.1:3000`. TLS is terminated by Nginx in one of two ways.
+
+**Mode A, host Nginx (current VPS).** The server already has Nginx and a certbot-managed certificate for `karaokecachoecabra.cl`. As a user in the `docker` group:
+
+```bash
+git clone <repo-url> ~/karaoke && cd ~/karaoke
+cp .env.example .env      # keep COMPOSE_PROFILES empty; fill the keys when available
+docker compose up -d --build
+sudo cp deploy/nginx/host-site.conf /etc/nginx/sites-available/karaoke
+sudo ln -sf /etc/nginx/sites-available/karaoke /etc/nginx/sites-enabled/karaoke
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**Mode B, containerized edge.** For a server without host Nginx, set `COMPOSE_PROFILES=edge` and `CERTBOT_EMAIL` in `.env`, then run `bash deploy/init-letsencrypt.sh`. It starts Nginx and Certbot in Docker, obtains the certificate for `DOMAIN`, and renews it automatically. DNS for `DOMAIN` must already point at the VPS.
+
+Every push to `main` then deploys through GitHub Actions: lint and typecheck, then SSH into the VPS, pull, and `docker compose up -d --build`. Repository secrets required: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` (private key of a deploy-only key pair), `VPS_APP_DIR` (for example `/home/deploy/karaoke`).
+
+Manual operations on the VPS:
+
+| Task | Command |
+| --- | --- |
+| Logs | `docker compose logs -f app` |
+| Restart | `docker compose restart app` |
+| Rollback | `git checkout <previous-sha> && docker compose up -d --build` |
+| Certificate status | `docker compose run --rm certbot certificates` |
+
 ## Layout
 
-```
+```text
 src/app/karaoke/…     guest flow: inicio, buscar, datos, selfie, confirmar, fila, cantando, votar, resultado
 src/app/panel/…       host panel: ahora, pendientes, cola, historial, configuracion, login
 src/app/tv/[id]       stage screen
