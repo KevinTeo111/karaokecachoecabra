@@ -22,6 +22,24 @@ export function normalizedQuery(q: string) {
 const POSITIVE = ["karaoke", "instrumental", "con letra", "lyrics", "sing along"];
 const NEGATIVE = ["live", "en vivo", "reaction", "tutorial", "cover acustico", "acoustic cover"];
 
+function trigrams(word: string) {
+  const padded = `  ${word} `;
+  const set = new Set<string>();
+  for (let i = 0; i < padded.length - 2; i++) set.add(padded.slice(i, i + 3));
+  return set;
+}
+
+/** Jaccard similarity over trigrams, the same idea pg_trgm uses server-side. */
+export function similarity(a: string, b: string) {
+  const ta = trigrams(a);
+  const tb = trigrams(b);
+  let shared = 0;
+  for (const t of ta) if (tb.has(t)) shared++;
+  return shared / (ta.size + tb.size - shared);
+}
+
+const FUZZY_THRESHOLD = 0.4;
+
 /** Spec §9 term scoring plus verified/favorite boosts. */
 export function scoreSong(song: Song, tokens: string[]) {
   const hay = normalize(`${song.title} ${song.artistGuess} ${song.channelTitle}`);
@@ -30,6 +48,10 @@ export function scoreSong(song: Song, tokens: string[]) {
   for (const t of tokens) {
     if (hay.includes(t)) score += 10;
     else if (hay.some((h) => h.startsWith(t) || (t.length > 3 && h.includes(t)))) score += 5;
+    else if (t.length >= 4) {
+      const best = Math.max(...hay.map((h) => similarity(t, h)));
+      if (best >= FUZZY_THRESHOLD) score += Math.round(best * 8);
+    }
   }
   if (score === 0) return 0;
   for (const p of POSITIVE) if (hayText.includes(p)) score += 3;
