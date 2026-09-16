@@ -1,65 +1,51 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-
 import { estimateWaitSec } from "@/lib/domain/eta";
 import { rankPerformances } from "@/lib/domain/rating";
 import type { KaraokeRequest, QueueEntry, SessionState } from "@/lib/domain/types";
 import { ACTIVE_STATUSES, QUEUE_STATUSES } from "@/lib/domain/types";
-import { uid } from "@/lib/utils";
-import type { Action } from "./reducer";
-import { sessionStore } from "./session-store";
+import type { Action } from "./actions";
+import { remoteStore } from "./remote-store";
 
-const DEVICE_KEY = "cec:device:v1";
+export function useStore() {
+  return useSyncExternalStore(remoteStore.subscribe, remoteStore.getSnapshot, remoteStore.getServerSnapshot);
+}
 
+/** Session state. Only render inside <SessionGate>, which guarantees it is loaded. */
 export function useSessionState(): SessionState {
-  return useSyncExternalStore(sessionStore.subscribe, sessionStore.getSnapshot, sessionStore.getServerSnapshot);
+  const { state } = useStore();
+  if (!state) throw new Error("useSessionState fuera de SessionGate");
+  return state;
+}
+
+export function useDeviceId(): string | null {
+  return useStore().deviceId;
 }
 
 export function useDispatch() {
-  return useCallback((action: Action) => {
-    try {
-      sessionStore.dispatch(action);
-      return null;
-    } catch (e) {
-      return e instanceof Error ? e.message : "Error inesperado";
-    }
-  }, []);
-}
-
-let deviceIdCache: string | null = null;
-function readDeviceId(): string {
-  if (deviceIdCache) return deviceIdCache;
-  try {
-    let stored = window.localStorage.getItem(DEVICE_KEY);
-    if (!stored) {
-      stored = uid("dev");
-      window.localStorage.setItem(DEVICE_KEY, stored);
-    }
-    deviceIdCache = stored;
-  } catch {
-    deviceIdCache = uid("dev");
-  }
-  return deviceIdCache;
-}
-const noopSubscribe = () => () => {};
-
-/**
- * Stable anonymous identity for this browser. Available on the very first
- * client render (null only on the server and during hydration), so pages
- * can tell "unknown yet" apart from "known, no request".
- */
-export function useDeviceId(): string | null {
-  return useSyncExternalStore(noopSubscribe, readDeviceId, () => null);
+  return useCallback((action: Action) => remoteStore.dispatch(action), []);
 }
 
 /** False on the server and during hydration, true on every client render after. */
+const noopSubscribe = () => () => {};
 export function useHydrated(): boolean {
   return useSyncExternalStore(
     noopSubscribe,
     () => true,
     () => false,
   );
+}
+
+/** Server-aligned clock, refreshed every `intervalMs`. Use for ETA and player sync. */
+export function useServerNow(intervalMs: number) {
+  const { offsetMs } = useStore();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
+    return () => window.clearInterval(id);
+  }, [intervalMs]);
+  return now + offsetMs;
 }
 
 export function joinEntry(state: SessionState, request: KaraokeRequest): QueueEntry | null {
@@ -70,12 +56,16 @@ export function joinEntry(state: SessionState, request: KaraokeRequest): QueueEn
   return { request, participant, song, performance };
 }
 
+const join = (state: SessionState, list: KaraokeRequest[]) =>
+  list.map((r) => joinEntry(state, r)).filter((e): e is QueueEntry => e !== null);
+
 export function selectQueue(state: SessionState): QueueEntry[] {
-  return state.requests
-    .filter((r) => QUEUE_STATUSES.includes(r.status))
-    .sort((a, b) => (a.queueOrder ?? 0) - (b.queueOrder ?? 0))
-    .map((r) => joinEntry(state, r))
-    .filter((e): e is QueueEntry => e !== null);
+  return join(
+    state,
+    state.requests
+      .filter((r) => QUEUE_STATUSES.includes(r.status))
+      .sort((a, b) => (a.queueOrder ?? 0) - (b.queueOrder ?? 0)),
+  );
 }
 
 export function selectPlaying(state: SessionState): QueueEntry | null {
@@ -84,19 +74,19 @@ export function selectPlaying(state: SessionState): QueueEntry | null {
 }
 
 export function selectPending(state: SessionState): QueueEntry[] {
-  return state.requests
-    .filter((r) => r.status === "PENDING")
-    .sort((a, b) => a.requestedAt - b.requestedAt)
-    .map((r) => joinEntry(state, r))
-    .filter((e): e is QueueEntry => e !== null);
+  return join(
+    state,
+    state.requests.filter((r) => r.status === "PENDING").sort((a, b) => a.requestedAt - b.requestedAt),
+  );
 }
 
 export function selectHistory(state: SessionState): QueueEntry[] {
-  return state.requests
-    .filter((r) => ["COMPLETED", "SKIPPED", "REJECTED", "CANCELLED"].includes(r.status))
-    .sort((a, b) => b.requestedAt - a.requestedAt)
-    .map((r) => joinEntry(state, r))
-    .filter((e): e is QueueEntry => e !== null);
+  return join(
+    state,
+    state.requests
+      .filter((r) => ["COMPLETED", "SKIPPED", "REJECTED", "CANCELLED"].includes(r.status))
+      .sort((a, b) => b.requestedAt - a.requestedAt),
+  );
 }
 
 export function selectRanking(state: SessionState) {
@@ -108,12 +98,9 @@ export function selectRanking(state: SessionState) {
     .filter((e): e is QueueEntry => e !== null);
 }
 
-/** The most relevant request for this device: active first, else the latest finished one. */
-export function selectMine(state: SessionState, deviceId: string | null): QueueEntry | null {
-  if (!deviceId) return null;
-  const mine = state.requests.filter(
-    (r) => state.participants.find((p) => p.id === r.participantId)?.deviceSessionId === deviceId,
-  );
+/** This device's most relevant request: an active one first, else the latest finished one. */
+export function selectMine(state: SessionState): QueueEntry | null {
+  const mine = state.requests.filter((r) => state.participants.find((p) => p.id === r.participantId)?.mine);
   const active = mine.find((r) => ACTIVE_STATUSES.includes(r.status));
   const latest = [...mine].sort((a, b) => b.requestedAt - a.requestedAt)[0];
   const chosen = active ?? latest;
@@ -122,13 +109,12 @@ export function selectMine(state: SessionState, deviceId: string | null): QueueE
 
 export function useMyEntry() {
   const state = useSessionState();
-  const deviceId = useDeviceId();
-  return useMemo(() => selectMine(state, deviceId), [state, deviceId]);
+  return useMemo(() => selectMine(state), [state]);
 }
 
 export function useQueuePosition(requestId: string | undefined) {
   const state = useSessionState();
-  const now = useNow(5000);
+  const now = useServerNow(5000);
   return useMemo(() => {
     if (!requestId) return null;
     const queue = selectQueue(state);
@@ -143,13 +129,4 @@ export function useQueuePosition(requestId: string | undefined) {
     });
     return { position: idx + 1, ahead: idx + (playing ? 1 : 0), waitSec };
   }, [state, requestId, now]);
-}
-
-export function useNow(intervalMs: number) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-  return now;
 }

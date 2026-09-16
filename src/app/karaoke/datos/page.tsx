@@ -16,8 +16,8 @@ export default function DatosPage() {
   const hydrated = useHydrated();
 
   useEffect(() => {
-    if (hydrated && !draft.songId) router.replace("/karaoke/buscar");
-  }, [hydrated, draft.songId, router]);
+    if (hydrated && !draft.song) router.replace("/karaoke/buscar");
+  }, [hydrated, draft.song, router]);
 
   const name = draft.displayName.trim();
   const table = Number(draft.tableNumber);

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { ScreenHeader, StarIcon } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 import type { Vote } from "@/lib/domain/types";
-import { selectPlaying, useDeviceId, useDispatch, useSessionState } from "@/lib/store/hooks";
+import { selectPlaying, useDispatch, useSessionState } from "@/lib/store/hooks";
 import { cn } from "@/lib/utils";
 
 const LABELS = ["", "Ánimo", "Bien", "Muy bien", "Excelente", "¡Ídolo!"];
@@ -15,13 +15,12 @@ const LABELS = ["", "Ánimo", "Bien", "Muy bien", "Excelente", "¡Ídolo!"];
 export default function VotarPage() {
   const router = useRouter();
   const state = useSessionState();
-  const deviceId = useDeviceId();
   const dispatch = useDispatch();
   const playing = selectPlaying(state);
   const [stars, setStars] = useState<Vote["stars"] | 0>(0);
   const [error, setError] = useState<string | null>(null);
 
-  const isMe = playing?.participant.deviceSessionId === deviceId;
+  const isMe = playing?.participant.mine === true;
   useEffect(() => {
     if (isMe) router.replace("/karaoke/cantando");
   }, [isMe, router]);
@@ -44,12 +43,11 @@ export default function VotarPage() {
   }
 
   const perfId = playing.performance.id;
-  const myVote = state.votes.find((v) => v.performanceId === perfId && v.voterDeviceSessionId === deviceId);
+  const myVote = state.votes.find((v) => v.performanceId === perfId && v.mine);
 
-  const submit = () => {
-    if (!stars || !deviceId) return;
-    const err = dispatch({ type: "vote/cast", performanceId: perfId, deviceSessionId: deviceId, stars });
-    setError(err);
+  const submit = async () => {
+    if (!stars) return;
+    setError(await dispatch({ type: "vote/cast", performanceId: perfId, stars }));
   };
 
   return (
@@ -107,7 +105,7 @@ export default function VotarPage() {
           <p className="mt-6 text-center font-bold">¿Cómo estuvo la presentación?</p>
           {error ? <p className="mt-2 text-center text-sm text-danger">{error}</p> : null}
           <div className="mt-4">
-            <Button size="lg" block disabled={!stars} onClick={submit}>
+            <Button size="lg" block disabled={!stars} onClick={() => void submit()}>
               Enviar voto
             </Button>
             <p className="mt-2 text-center text-xs text-ink-400">1 voto por dispositivo · voto anónimo</p>

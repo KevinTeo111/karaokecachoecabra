@@ -76,7 +76,7 @@ export default function TvPage() {
               onTime={(t) => {
                 if (t - lastTick.current >= TICK_EVERY_SEC || t < lastTick.current) {
                   lastTick.current = t;
-                  dispatch({ type: "performance/tick", performanceId: perf.id, playerTime: t });
+                  void dispatch({ type: "performance/tick", performanceId: perf.id, playerTime: t });
                 }
               }}
             />

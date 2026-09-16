@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import type { Song } from "@/lib/domain/types";
 
 /** In-progress request on this phone, before it is submitted. */
 export interface Draft {
-  songId: string | null;
+  song: Song | null;
   displayName: string;
   tableNumber: string;
   selfieUrl: string | null;
@@ -12,7 +13,7 @@ export interface Draft {
 }
 
 const KEY = "cec:draft:v1";
-const EMPTY: Draft = { songId: null, displayName: "", tableNumber: "", selfieUrl: null, consent: false };
+const EMPTY: Draft = { song: null, displayName: "", tableNumber: "", selfieUrl: null, consent: false };
 
 let cache: Draft = EMPTY;
 let loaded = false;

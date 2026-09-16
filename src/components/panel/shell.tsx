@@ -1,12 +1,13 @@
 "use client";
 
-import { Clock3, History, Inbox, ListOrdered, Mic2, Settings2, Tv2 } from "lucide-react";
+import { Clock3, History, Inbox, ListOrdered, LogOut, Mic2, Settings2, Tv2 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Badge, LiveDot } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { selectPending, selectQueue, useDispatch, useSessionState } from "@/lib/store/hooks";
+import { selectPending, selectQueue, useDispatch, useSessionState, useStore } from "@/lib/store/hooks";
+import { browserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -19,8 +20,14 @@ const NAV = [
 
 export function PanelShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const state = useSessionState();
+  const { connected } = useStore();
   const dispatch = useDispatch();
+  const logout = async () => {
+    await browserClient().auth.signOut();
+    router.replace("/panel/login");
+  };
   const pending = selectPending(state).length;
   const queued = selectQueue(state).length;
   const open = state.session.status === "OPEN";
@@ -71,17 +78,25 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
               <Clock3 className="size-3" /> {state.session.startsAt}–{state.session.endsAt}
             </p>
           </div>
-          <Badge tone="success">
-            <LiveDot /> Online
+          <Badge tone={connected ? "success" : "danger"}>
+            {connected ? <LiveDot /> : null} {connected ? "Online" : "Offline · sondeando"}
           </Badge>
           <label className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest">
             <span className={open ? "text-success" : "text-ink-400"}>{open ? "Karaoke abierto" : "Cerrado"}</span>
             <Switch
               checked={open}
-              onCheckedChange={(v) => dispatch({ type: "session/setStatus", status: v ? "OPEN" : "CLOSED" })}
+              onCheckedChange={(v) => void dispatch({ type: "session/setStatus", status: v ? "OPEN" : "CLOSED" })}
               aria-label="Abrir o cerrar el karaoke"
             />
           </label>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="rounded-full p-2 text-ink-400 hover:bg-white/5 hover:text-ink-100"
+            aria-label="Cerrar sesión"
+          >
+            <LogOut className="size-4" />
+          </button>
         </header>
         <nav className="flex gap-1 overflow-x-auto border-b border-white/5 px-4 py-2 scrollbar-none lg:hidden">
           {NAV.map(({ href, label }) => (

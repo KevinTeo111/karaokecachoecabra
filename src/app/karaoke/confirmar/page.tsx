@@ -7,20 +7,19 @@ import { ScreenHeader } from "@/components/brand/wordmark";
 import { SongThumb } from "@/components/client/song-card";
 import { Button } from "@/components/ui/button";
 import { useDraft } from "@/lib/store/draft";
-import { useDeviceId, useDispatch, useHydrated, useSessionState } from "@/lib/store/hooks";
+import { useDispatch, useHydrated, useSessionState } from "@/lib/store/hooks";
 import { formatDuration } from "@/lib/utils";
 
 export default function ConfirmarPage() {
   const router = useRouter();
   const { draft, clear } = useDraft();
-  const { songs, session } = useSessionState();
-  const deviceId = useDeviceId();
+  const { session } = useSessionState();
   const dispatch = useDispatch();
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   const hydrated = useHydrated();
-  const song = songs.find((s) => s.id === draft.songId);
+  const song = draft.song;
   const complete = song && draft.displayName.trim() && draft.tableNumber && draft.selfieUrl && draft.consent;
 
   useEffect(() => {
@@ -29,18 +28,14 @@ export default function ConfirmarPage() {
 
   if (!song || !complete) return null;
 
-  const submit = () => {
-    if (!deviceId) return;
+  const submit = async () => {
     setSending(true);
-    const err = dispatch({
+    const err = await dispatch({
       type: "request/create",
       songId: song.id,
-      participant: {
-        deviceSessionId: deviceId,
-        displayName: draft.displayName.trim(),
-        tableNumber: Number(draft.tableNumber),
-        selfieUrl: draft.selfieUrl,
-      },
+      displayName: draft.displayName.trim(),
+      tableNumber: Number(draft.tableNumber),
+      selfieDataUrl: draft.selfieUrl!,
     });
     if (err) {
       setError(err);
@@ -88,8 +83,8 @@ export default function ConfirmarPage() {
       {error ? <p className="mt-3 text-center text-sm text-danger">{error}</p> : null}
 
       <div className="mt-auto pt-6">
-        <Button size="lg" block onClick={submit} disabled={sending || session.status !== "OPEN"}>
-          {session.status === "OPEN" ? "Enviar al karaoke" : "Karaoke cerrado"}
+        <Button size="lg" block onClick={() => void submit()} disabled={sending || session.status !== "OPEN"}>
+          {sending ? "Enviando…" : session.status === "OPEN" ? "Enviar al karaoke" : "Karaoke cerrado"}
         </Button>
       </div>
     </div>

@@ -6,12 +6,29 @@ Plan and architecture: [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
 
 ## Status
 
-UI phase complete. Every screen from the spec is implemented on a typed domain layer and a local reactive store that syncs across browser tabs, so the panel in one tab drives phones and TVs in others. The Supabase backend, YouTube catalog sync and realtime transport replace the store adapter in the next steps of the plan.
+UI and backend in place. Screens run on a typed domain layer; state lives in Supabase Postgres, every mutation is a Postgres function called by the Next.js server, and phones, panel and TVs stay in sync through Supabase Realtime broadcasts with a polling fallback. Next: YouTube catalog sync and search fallback (plan Step 4), hardening (Step 8).
 
-## Run
+## Supabase setup (once per project)
+
+1. Create a project at supabase.com. Copy the Project URL and the `anon` and `service_role` keys from Settings, API.
+2. Open the SQL editor, paste the whole of `supabase/migrations/20260916000000_init.sql`, run it. It creates tables, RLS, functions, the private `selfies` bucket, 30 tables, one open night and the demo catalog.
+3. Create the animador's login under Authentication, Users, Add user (email + password, auto-confirm). Then grant the role in the SQL editor:
+
+   ```sql
+   insert into admin_users (id, role, display_name)
+   select id, 'OWNER', 'Nombre' from auth.users where email = 'correo@ejemplo.cl';
+   ```
+
+   Use `'HOST'` for animadores who should not open new nights.
+4. Fill `.env` (see `.env.example`). `DEVICE_TOKEN_SECRET` is any random string of 32+ characters, for example the output of `openssl rand -hex 32`.
+
+The `NEXT_PUBLIC_*` values are baked into the browser bundle at build time, so after changing `.env` rebuild with `docker compose up -d --build`.
+
+## Run locally
 
 ```bash
 npm install
+cp .env.example .env.local   # fill the Supabase values
 npm run dev
 ```
 
@@ -21,7 +38,7 @@ npm run dev
 | `/panel` | Host panel |
 | `/tv/demo-night` | Stage TV |
 
-Demo walkthrough: open the panel and the TV in two tabs, open `/karaoke?table=8` in a third, request a song, approve it in the panel, click Iniciar, and watch the TV and the guest phone switch to the performance. Open `/karaoke` in a fourth tab to vote.
+Walkthrough: open the panel on a computer, the TV on another screen, and `/karaoke?table=8` on a phone. Request a song, approve it in the panel, click Iniciar, and the TV and the phone switch to the performance. A second phone at `/karaoke` can vote.
 
 ## Scripts
 
@@ -69,8 +86,9 @@ src/app/panel/…       host panel: ahora, pendientes, cola, historial, configur
 src/app/tv/[id]       stage screen
 src/components/       ui primitives, brand, player, client, panel
 src/lib/domain/       types, state machine, ETA, rating
-src/lib/search/       query normalization and karaoke scoring
 src/lib/selfie/       branded 1:1 selfie rendering
-src/lib/store/        reducer, cross-tab store, hooks, draft
-src/lib/mock/         demo catalog
+src/lib/store/        actions contract, realtime client store, hooks, draft
+src/lib/server/       device cookie, snapshot builder, realtime broadcast, HTTP helpers
+src/lib/supabase/     server (service role, auth) and browser clients
+supabase/migrations/  schema, RLS, functions, seed
 ```

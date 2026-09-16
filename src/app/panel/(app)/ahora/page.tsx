@@ -14,7 +14,7 @@ import {
   selectQueue,
   selectRanking,
   useDispatch,
-  useNow,
+  useServerNow,
   useSessionState,
 } from "@/lib/store/hooks";
 import { formatDuration, formatRating } from "@/lib/utils";
@@ -22,7 +22,7 @@ import { formatDuration, formatRating } from "@/lib/utils";
 export default function AhoraPage() {
   const state = useSessionState();
   const dispatch = useDispatch();
-  const now = useNow(1000);
+  const now = useServerNow(1000);
   const [error, setError] = useState<string | null>(null);
   const playing = selectPlaying(state);
   const queue = selectQueue(state);
@@ -30,7 +30,7 @@ export default function AhoraPage() {
   const ranking = selectRanking(state).slice(0, 3);
   const next = queue[0];
 
-  const run = (action: Parameters<typeof dispatch>[0]) => setError(dispatch(action));
+  const run = (action: Parameters<typeof dispatch>[0]) => void dispatch(action).then(setError);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">

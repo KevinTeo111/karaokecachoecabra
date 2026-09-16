@@ -35,10 +35,11 @@ export interface Song {
 
 export interface Participant {
   id: string;
-  deviceSessionId: string;
+  /** True when this participant was created by the requesting device. */
+  mine: boolean;
   displayName: string;
   tableNumber: number;
-  /** Data URL in the mock store; a signed storage URL once the backend exists. */
+  /** Short-lived signed URL from private storage, or null. */
   selfieUrl: string | null;
 }
 
@@ -70,7 +71,8 @@ export interface Performance {
 export interface Vote {
   id: string;
   performanceId: string;
-  voterDeviceSessionId: string;
+  /** True when the requesting device cast this vote. Voter identities never leave the server. */
+  mine: boolean;
   stars: 1 | 2 | 3 | 4 | 5;
   createdAt: number;
 }
@@ -81,6 +83,7 @@ export interface SessionSettings {
   blockSameTableVote: boolean;
   maxActiveRequestsPerDevice: number;
   prepareNoticeSongs: number;
+  selfieRetentionHours: number;
 }
 
 export interface AuditEntry {
@@ -100,9 +103,11 @@ export interface KaraokeSession {
 }
 
 export interface SessionState {
-  version: number;
+  /** Server clock at snapshot time, for drift-free ETA and sync on phones. */
+  serverNow: number;
   session: KaraokeSession;
   settings: SessionSettings;
+  queueVersion: number;
   songs: Song[];
   participants: Participant[];
   requests: KaraokeRequest[];

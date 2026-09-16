@@ -9,16 +9,13 @@ import { YouTubePlayer } from "@/components/player/youtube-player";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { Song } from "@/lib/domain/types";
-import { searchCatalog } from "@/lib/search/normalize";
 import { useDraft } from "@/lib/store/draft";
-import { useSessionState } from "@/lib/store/hooks";
 
 const MIN_CHARS = 3;
 const DEBOUNCE_MS = 600;
 
 export default function BuscarPage() {
   const router = useRouter();
-  const { songs } = useSessionState();
   const { update } = useDraft();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Song[] | null>(null);
@@ -32,16 +29,27 @@ export default function BuscarPage() {
       return;
     }
     setLoading(true);
-    const t = window.setTimeout(() => {
-      // Local catalog search; the API route replaces this call in Step 4.
-      setResults(searchCatalog(songs, query));
-      setLoading(false);
+    const controller = new AbortController();
+    const t = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, { signal: controller.signal });
+        setResults(res.ok ? ((await res.json()) as Song[]) : []);
+        setLoading(false);
+      } catch {
+        if (!controller.signal.aborted) {
+          setResults([]);
+          setLoading(false);
+        }
+      }
     }, DEBOUNCE_MS);
-    return () => window.clearTimeout(t);
-  }, [query, songs]);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [query]);
 
   const choose = (song: Song) => {
-    update({ songId: song.id });
+    update({ song });
     router.push("/karaoke/datos");
   };
 

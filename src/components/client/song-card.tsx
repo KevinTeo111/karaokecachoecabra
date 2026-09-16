@@ -3,8 +3,7 @@
 import { BadgeCheck, Heart, Play } from "lucide-react";
 import Image from "next/image";
 import type { Song } from "@/lib/domain/types";
-import { thumbnailUrl } from "@/lib/mock/catalog";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn, formatDuration, thumbnailUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export function SongThumb({ song, className }: { song: Song; className?: string }) {

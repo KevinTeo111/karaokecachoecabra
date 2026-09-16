@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ScreenHeader } from "@/components/brand/wordmark";
 import { YouTubePlayer, type PlayerHandle } from "@/components/player/youtube-player";
 import { Button } from "@/components/ui/button";
-import { useDeviceId, useMyEntry, useNow } from "@/lib/store/hooks";
+import { useDeviceId, useMyEntry, useServerNow, useStore } from "@/lib/store/hooks";
 import { formatDuration } from "@/lib/utils";
 
 const DRIFT_TOLERANCE_SEC = 1.5;
@@ -24,7 +24,8 @@ export default function CantandoPage() {
   const [armed, setArmed] = useState(false);
   const [localTime, setLocalTime] = useState(0);
   const [drift, setDrift] = useState(0);
-  const now = useNow(1000);
+  const now = useServerNow(1000);
+  const { offsetMs } = useStore();
 
   const status = mine?.request.status;
   const perf = mine?.performance ?? null;
@@ -42,12 +43,12 @@ export default function CantandoPage() {
     (force = false) => {
       const p = playerRef.current;
       if (!p || !perf) return;
-      const expected = expectedTime(perf.playerTime, perf.tickAt, perf.paused, Date.now());
+      const expected = expectedTime(perf.playerTime, perf.tickAt, perf.paused, Date.now() + offsetMs);
       const d = p.currentTime() - expected;
       setDrift(d);
       if (force || Math.abs(d) > DRIFT_TOLERANCE_SEC) p.seek(expected);
     },
-    [perf],
+    [perf, offsetMs],
   );
 
   useEffect(() => {

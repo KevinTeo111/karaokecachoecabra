@@ -18,7 +18,7 @@ export default function ConfiguracionPage() {
   const [copied, setCopied] = useState<number | null>(null);
 
   const set = <K extends keyof SessionSettings>(key: K, value: SessionSettings[K]) =>
-    dispatch({ type: "session/updateSettings", patch: { [key]: value } });
+    void dispatch({ type: "session/updateSettings", patch: { [key]: value } });
 
   const numberField = (key: keyof SessionSettings, label: string, hint: string, min: number, max: number) => (
     <div>
@@ -109,15 +109,20 @@ export default function ConfiguracionPage() {
         </div>
 
         <div>
-          <SectionTitle>Demo</SectionTitle>
+          <SectionTitle>Noche</SectionTitle>
           <ConfirmButton
             variant="danger"
-            title="Reiniciar la noche"
-            description="Borra solicitudes, votos y ranking de este navegador. Solo para la demo local."
-            confirmLabel="Reiniciar"
-            onConfirm={() => dispatch({ type: "session/reset" })}
+            title="Abrir una noche nueva"
+            description="Cierra la noche actual y empieza con cola y ranking vacíos. El historial se conserva. Solo el dueño puede hacerlo."
+            confirmLabel="Nueva noche"
+            onConfirm={() =>
+              void dispatch({
+                type: "session/new",
+                name: `Karaoke ${new Date().toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "short" })}`,
+              }).then((e) => e && window.alert(e))
+            }
           >
-            <RotateCcw className="size-4" /> Reiniciar demo
+            <RotateCcw className="size-4" /> Nueva noche
           </ConfirmButton>
         </div>
       </section>

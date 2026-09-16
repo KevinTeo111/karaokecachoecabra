@@ -22,10 +22,7 @@ export function formatRating(value: number | null) {
   return value.toFixed(1).replace(".", ",");
 }
 
-export function uid(prefix = "") {
-  const raw =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2) + Date.now().toString(36);
-  return prefix ? `${prefix}_${raw}` : raw;
+
+export function thumbnailUrl(youtubeVideoId: string) {
+  return `https://i.ytimg.com/vi/${youtubeVideoId}/hqdefault.jpg`;
 }

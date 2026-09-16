@@ -21,11 +21,12 @@ export default function PendientesPage() {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const reject = () => {
+  const reject = async () => {
     if (!rejecting) return;
-    setError(dispatch({ type: "request/reject", requestId: rejecting.request.id, reason: reason.trim() }));
+    const id = rejecting.request.id;
     setRejecting(null);
     setReason("");
+    setError(await dispatch({ type: "request/reject", requestId: id, reason: reason.trim() }));
   };
 
   return (
@@ -60,7 +61,7 @@ export default function PendientesPage() {
                 <Button variant="danger" size="sm" onClick={() => setRejecting(e)}>
                   <X className="size-4" /> Rechazar
                 </Button>
-                <Button variant="success" size="sm" onClick={() => setError(dispatch({ type: "request/approve", requestId: e.request.id }))}>
+                <Button variant="success" size="sm" onClick={() => void dispatch({ type: "request/approve", requestId: e.request.id }).then(setError)}>
                   <Check className="size-4" /> Aprobar
                 </Button>
               </div>
@@ -95,7 +96,7 @@ export default function PendientesPage() {
               <Button variant="ghost" onClick={() => setRejecting(null)}>
                 Volver
               </Button>
-              <Button variant="danger" onClick={reject}>
+              <Button variant="danger" onClick={() => void reject()}>
                 Rechazar
               </Button>
             </div>

@@ -4,20 +4,16 @@ import { Star } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LiveDot } from "@/components/ui/badge";
-import { selectPlaying, useDeviceId, useSessionState } from "@/lib/store/hooks";
+import { selectPlaying, useSessionState } from "@/lib/store/hooks";
 
 /** Persistent invitation to vote whenever someone else is on stage. */
 export function NowPlayingBanner() {
   const state = useSessionState();
-  const deviceId = useDeviceId();
   const pathname = usePathname();
   const playing = selectPlaying(state);
-  if (!playing || !deviceId) return null;
-  if (playing.participant.deviceSessionId === deviceId) return null;
+  if (!playing || playing.participant.mine) return null;
   if (pathname.startsWith("/karaoke/votar")) return null;
-  const voted = state.votes.some(
-    (v) => v.performanceId === playing.performance?.id && v.voterDeviceSessionId === deviceId,
-  );
+  const voted = state.votes.some((v) => v.performanceId === playing.performance?.id && v.mine);
 
   return (
     <Link

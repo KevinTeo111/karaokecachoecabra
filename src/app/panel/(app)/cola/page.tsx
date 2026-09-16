@@ -1,15 +1,14 @@
 "use client";
 
 import { ArrowDown, ArrowUp, PhoneCall, Play, Replace, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionError, Avatar, ConfirmButton, EmptyState, SectionTitle } from "@/components/panel/bits";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { STATUS_LABEL } from "@/lib/domain/state-machine";
-import type { QueueEntry } from "@/lib/domain/types";
-import { searchCatalog } from "@/lib/search/normalize";
+import type { QueueEntry, Song } from "@/lib/domain/types";
 import { selectPlaying, selectQueue, useDispatch, useSessionState } from "@/lib/store/hooks";
 import { formatDuration } from "@/lib/utils";
 
@@ -21,18 +20,37 @@ export default function ColaPage() {
   const [error, setError] = useState<string | null>(null);
   const [replacing, setReplacing] = useState<QueueEntry | null>(null);
   const [q, setQ] = useState("");
+  const [replacements, setReplacements] = useState<Song[]>([]);
 
-  const run = (action: Parameters<typeof dispatch>[0]) => setError(dispatch(action));
+  useEffect(() => {
+    if (q.trim().length < 3) {
+      setReplacements([]);
+      return;
+    }
+    const controller = new AbortController();
+    const t = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`, { signal: controller.signal });
+        if (res.ok) setReplacements((await res.json()) as Song[]);
+      } catch {
+        /* aborted */
+      }
+    }, 400);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [q]);
+
+  const run = (action: Parameters<typeof dispatch>[0]) => void dispatch(action).then(setError);
 
   const move = (index: number, delta: number) => {
     const ids = queue.map((e) => e.request.id);
     const target = index + delta;
     if (target < 0 || target >= ids.length) return;
     [ids[index], ids[target]] = [ids[target], ids[index]];
-    run({ type: "queue/reorder", orderedIds: ids });
+    run({ type: "queue/reorder", orderedIds: ids, expectedVersion: state.queueVersion });
   };
-
-  const replacements = q.trim().length >= 3 ? searchCatalog(state.songs, q, 6) : [];
 
   return (
     <section className="max-w-4xl">
