@@ -34,7 +34,7 @@ Demo walkthrough: open the panel and the TV in two tabs, open `/karaoke?table=8`
 
 ## Deploy (Hostinger VPS, Docker + Nginx + Let's Encrypt)
 
-The app runs in Docker bound to `127.0.0.1:3000`. TLS is terminated by Nginx in one of two ways.
+The app runs in Docker bound to `127.0.0.1:3100`. TLS is terminated by Nginx in one of two ways.
 
 **Mode A, host Nginx (current VPS).** The server already has Nginx and a certbot-managed certificate for `karaokecachoecabra.cl`. As a user in the `docker` group:
 
