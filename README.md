@@ -36,21 +36,21 @@ Demo walkthrough: open the panel and the TV in two tabs, open `/karaoke?table=8`
 
 The app runs in Docker bound to `127.0.0.1:3100`. TLS is terminated by Nginx in one of two ways.
 
-**Mode A, host Nginx (current VPS).** The server already has Nginx and a certbot-managed certificate for `karaokecachoecabra.cl`. As a user in the `docker` group:
+**Mode A, host Nginx (current VPS).** The server already has Nginx and certbot. As a user in the `docker` group, once public DNS for `karaokecec.cl` points at the VPS:
 
 ```bash
-git clone <repo-url> ~/karaoke && cd ~/karaoke
+sudo git clone <repo-url> /opt/karaoke && sudo chown -R $USER /opt/karaoke && cd /opt/karaoke
 cp .env.example .env      # keep COMPOSE_PROFILES empty; fill the keys when available
 docker compose up -d --build
 sudo cp deploy/nginx/host-site.conf /etc/nginx/sites-available/karaoke
 sudo ln -sf /etc/nginx/sites-available/karaoke /etc/nginx/sites-enabled/karaoke
-sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx --redirect -d karaokecec.cl -d www.karaokecec.cl
 ```
 
 **Mode B, containerized edge.** For a server without host Nginx, set `COMPOSE_PROFILES=edge` and `CERTBOT_EMAIL` in `.env`, then run `bash deploy/init-letsencrypt.sh`. It starts Nginx and Certbot in Docker, obtains the certificate for `DOMAIN`, and renews it automatically. DNS for `DOMAIN` must already point at the VPS.
 
-Every push to `main` then deploys through GitHub Actions: lint and typecheck, then SSH into the VPS, pull, and `docker compose up -d --build`. Repository secrets required: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` (private key of a deploy-only key pair), `VPS_APP_DIR` (for example `/home/deploy/karaoke`).
+Every push to `main` then deploys through GitHub Actions: lint and typecheck, then SSH into the VPS, pull, and `docker compose up -d --build`. Repository secrets required: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` (private key of a deploy-only key pair), `VPS_APP_DIR` (for example `/opt/karaoke`).
 
 Manual operations on the VPS:
 
