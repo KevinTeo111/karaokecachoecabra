@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+
 import { estimateWaitSec } from "@/lib/domain/eta";
 import { rankPerformances } from "@/lib/domain/rating";
 import type { KaraokeRequest, QueueEntry, SessionState } from "@/lib/domain/types";
@@ -26,22 +27,39 @@ export function useDispatch() {
   }, []);
 }
 
-/** Stable anonymous identity for this browser, created on first use. */
-export function useDeviceId() {
-  const [id, setId] = useState<string | null>(null);
-  useEffect(() => {
-    try {
-      let stored = window.localStorage.getItem(DEVICE_KEY);
-      if (!stored) {
-        stored = uid("dev");
-        window.localStorage.setItem(DEVICE_KEY, stored);
-      }
-      setId(stored);
-    } catch {
-      setId(uid("dev"));
+let deviceIdCache: string | null = null;
+function readDeviceId(): string {
+  if (deviceIdCache) return deviceIdCache;
+  try {
+    let stored = window.localStorage.getItem(DEVICE_KEY);
+    if (!stored) {
+      stored = uid("dev");
+      window.localStorage.setItem(DEVICE_KEY, stored);
     }
-  }, []);
-  return id;
+    deviceIdCache = stored;
+  } catch {
+    deviceIdCache = uid("dev");
+  }
+  return deviceIdCache;
+}
+const noopSubscribe = () => () => {};
+
+/**
+ * Stable anonymous identity for this browser. Available on the very first
+ * client render (null only on the server and during hydration), so pages
+ * can tell "unknown yet" apart from "known, no request".
+ */
+export function useDeviceId(): string | null {
+  return useSyncExternalStore(noopSubscribe, readDeviceId, () => null);
+}
+
+/** False on the server and during hydration, true on every client render after. */
+export function useHydrated(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
 }
 
 export function joinEntry(state: SessionState, request: KaraokeRequest): QueueEntry | null {

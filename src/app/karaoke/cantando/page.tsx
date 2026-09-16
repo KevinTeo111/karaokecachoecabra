@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ScreenHeader } from "@/components/brand/wordmark";
 import { YouTubePlayer, type PlayerHandle } from "@/components/player/youtube-player";
 import { Button } from "@/components/ui/button";
-import { useMyEntry, useNow } from "@/lib/store/hooks";
+import { useDeviceId, useMyEntry, useNow } from "@/lib/store/hooks";
 import { formatDuration } from "@/lib/utils";
 
 const DRIFT_TOLERANCE_SEC = 1.5;
@@ -28,12 +28,15 @@ export default function CantandoPage() {
 
   const status = mine?.request.status;
   const perf = mine?.performance ?? null;
+  const deviceId = useDeviceId();
 
   useEffect(() => {
+    // Identity unknown during hydration: decide nothing yet.
+    if (deviceId === null) return;
     if (!mine) router.replace("/karaoke/fila");
     else if (status === "COMPLETED") router.replace("/karaoke/resultado");
     else if (status !== "PLAYING") router.replace("/karaoke/fila");
-  }, [mine, status, router]);
+  }, [deviceId, mine, status, router]);
 
   const sync = useCallback(
     (force = false) => {

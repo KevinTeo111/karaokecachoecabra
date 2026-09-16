@@ -7,7 +7,7 @@ import { ScreenHeader } from "@/components/brand/wordmark";
 import { SongThumb } from "@/components/client/song-card";
 import { Button } from "@/components/ui/button";
 import { useDraft } from "@/lib/store/draft";
-import { useDeviceId, useDispatch, useSessionState } from "@/lib/store/hooks";
+import { useDeviceId, useDispatch, useHydrated, useSessionState } from "@/lib/store/hooks";
 import { formatDuration } from "@/lib/utils";
 
 export default function ConfirmarPage() {
@@ -19,12 +19,13 @@ export default function ConfirmarPage() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
+  const hydrated = useHydrated();
   const song = songs.find((s) => s.id === draft.songId);
   const complete = song && draft.displayName.trim() && draft.tableNumber && draft.selfieUrl && draft.consent;
 
   useEffect(() => {
-    if (!complete) router.replace("/karaoke/datos");
-  }, [complete, router]);
+    if (hydrated && !complete) router.replace("/karaoke/datos");
+  }, [hydrated, complete, router]);
 
   if (!song || !complete) return null;
 

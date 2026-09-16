@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { STATUS_LABEL } from "@/lib/domain/state-machine";
 import type { QueueEntry } from "@/lib/domain/types";
-import { useDispatch, useMyEntry, useQueuePosition, useSessionState } from "@/lib/store/hooks";
+import { useDeviceId, useDispatch, useMyEntry, useQueuePosition, useSessionState } from "@/lib/store/hooks";
 import { formatMinutes } from "@/lib/utils";
 
 export default function FilaPage() {
@@ -18,6 +18,7 @@ export default function FilaPage() {
   const { settings } = useSessionState();
   const position = useQueuePosition(mine?.request.id);
   const status = mine?.request.status;
+  const deviceId = useDeviceId();
 
   useEffect(() => {
     if (mine === null) return;
@@ -25,6 +26,7 @@ export default function FilaPage() {
     if (status === "COMPLETED") router.replace("/karaoke/resultado");
   }, [mine, status, router]);
 
+  if (deviceId === null) return null;
   if (!mine) return <Empty />;
 
   switch (status) {

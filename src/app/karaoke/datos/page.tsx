@@ -8,14 +8,16 @@ import { ScreenHeader, Wordmark } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useDraft } from "@/lib/store/draft";
+import { useHydrated } from "@/lib/store/hooks";
 
 export default function DatosPage() {
   const router = useRouter();
   const { draft, update } = useDraft();
+  const hydrated = useHydrated();
 
   useEffect(() => {
-    if (!draft.songId) router.replace("/karaoke/buscar");
-  }, [draft.songId, router]);
+    if (hydrated && !draft.songId) router.replace("/karaoke/buscar");
+  }, [hydrated, draft.songId, router]);
 
   const name = draft.displayName.trim();
   const table = Number(draft.tableNumber);
