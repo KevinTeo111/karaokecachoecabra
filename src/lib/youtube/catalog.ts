@@ -40,7 +40,7 @@ interface SongUpsert {
 }
 
 function toRow(v: VideoDetails, source: SongUpsert["source"]): SongUpsert {
-  const { title, artist } = splitTitle(v.title);
+  const { title, artist } = splitTitle(v.title, v.channelTitle);
   return {
     youtube_video_id: v.id,
     title,
@@ -184,9 +184,11 @@ async function healthCheck(): Promise<number> {
   if (ids.length === 0 || (await budgetLeft()) < 20) return 0;
   const details = await videosList(ids);
   for (const d of details) {
+    const parsed = d.available ? splitTitle(d.title, d.channelTitle) : null;
     await db
       .from("songs")
       .update({
+        ...(parsed ? { title: parsed.title, artist_guess: parsed.artist } : {}),
         embeddable: d.embeddable,
         status: !d.available ? "unavailable" : !d.embeddable ? "not_embeddable" : "ok",
         last_checked_at: new Date().toISOString(),
@@ -221,6 +223,15 @@ export async function runCatalogSync(maxMs = 50_000): Promise<SyncReport> {
       }
     }
 
+    const { data: queries } = await db.from("catalog_queries").select("query,category").is("last_run_at", null);
+    for (const q of queries ?? []) {
+      if (timeLeft() < 8_000 || (await budgetLeft()) < QUOTA.search + 10) {
+        report.stoppedReason = timeLeft() < 8_000 ? "tiempo" : "cuota";
+        break;
+      }
+      report.queries.push(await runSeedQuery(q));
+    }
+
     const { data: channels } = await db
       .from("catalog_channels")
       .select("channel_id,title,uploads_playlist_id,last_published_at,backfill_page_token,backfill_done")
@@ -234,15 +245,6 @@ export async function runCatalogSync(maxMs = 50_000): Promise<SyncReport> {
         break;
       }
       report.channels.push(await syncChannel(ch, deadline));
-    }
-
-    const { data: queries } = await db.from("catalog_queries").select("query,category").is("last_run_at", null);
-    for (const q of queries ?? []) {
-      if (timeLeft() < 8_000 || (await budgetLeft()) < QUOTA.search + 10) {
-        report.stoppedReason = timeLeft() < 8_000 ? "tiempo" : "cuota";
-        break;
-      }
-      report.queries.push(await runSeedQuery(q));
     }
 
     if (timeLeft() > 5_000) report.healthChecked = await healthCheck();

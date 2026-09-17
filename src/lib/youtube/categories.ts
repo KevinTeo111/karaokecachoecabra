@@ -52,22 +52,42 @@ export function karaokeScore(title: string, channelTitle: string, durationSec: n
   return score;
 }
 
-/** Splits "Artist - Title (Karaoke Version)" style titles into a clean title and an artist guess. */
-export function splitTitle(raw: string): { title: string; artist: string } {
-  let t = raw
-    .replace(/[([{][^)\]}]*(karaoke|instrumental|lyrics?|letra|pista|version|versi[oó]n|hd|4k|official)[^)\]}]*[)\]}]/gi, "")
-    .replace(/\b(karaoke|instrumental|con letra|lyrics?|pista|hd|4k)\b/gi, "")
+/** Channels are consistent about "Artist - Title" vs "Title - Artist"; unknown channels keep the full title. */
+const CHANNEL_ORDER: Record<string, "artist-title" | "title-artist"> = {
+  "stingray karaoke": "artist-title",
+  "sing king": "artist-title",
+  "sing king karaoke": "artist-title",
+  "zoom karaoke": "artist-title",
+  "karafun": "title-artist",
+  "karafun español": "title-artist",
+  "karaoke version": "title-artist",
+  "karaoké version": "title-artist",
+  "karaoke latino": "title-artist",
+  "cantoyo": "artist-title",
+};
+
+const NOISE =
+  /\b(karaoke|instrumental|con letra|sin voz|con voz|lyrics?|letra|pista|backing track|no vocals?|with vocals?|with|without|version|versi[oó]n|official|oficial|hq|hd|4k|videoke|sing along)\b/gi;
+
+/** Cleans a YouTube title and, when the channel's convention is known, separates artist and title. */
+export function splitTitle(raw: string, channelTitle = ""): { title: string; artist: string } {
+  const cleaned = raw
+    .replace(/[\p{Extended_Pictographic}️]/gu, "")
+    .replace(/[([{][^)\]}]*(karaoke|instrumental|lyrics?|letra|pista|version|versi[oó]n|hd|4k|official|vocals?)[^)\]}]*[)\]}]/gi, "")
+    .replace(NOISE, "")
+    .replace(/\*+/g, "")
+    .replace(/\s*[-–|:]\s*(?=[-–|:]|$)/g, "")
     .replace(/\s{2,}/g, " ")
-    .replace(/[\s|:-]+$/g, "")
+    .replace(/^[\s|:,.-]+|[\s|:,.-]+$/g, "")
     .trim();
-  const parts = t.split(/\s[-–|]\s/);
-  if (parts.length >= 2) {
-    const [a, b] = [parts[0].trim(), parts.slice(1).join(" - ").trim()];
-    // Karaoke channels mostly write "Artist - Title"; fall back to the longer part as the title.
-    return b.length >= a.length ? { artist: a, title: b } : { artist: b, title: a };
+  const order = CHANNEL_ORDER[channelTitle.trim().toLowerCase()];
+  const parts = cleaned.split(/\s[-–|]\s/).map((p) => p.trim()).filter(Boolean);
+  if (order && parts.length >= 2) {
+    const [first, ...rest] = parts;
+    const second = rest.join(" - ");
+    return order === "artist-title" ? { artist: first, title: second } : { artist: second, title: first };
   }
-  t = t || raw;
-  return { title: t, artist: "" };
+  return { title: cleaned || raw, artist: "" };
 }
 
 export function normalizeQuery(q: string) {
