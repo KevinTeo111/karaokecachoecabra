@@ -25,7 +25,9 @@ function key() {
   return k;
 }
 
-export async function spendQuota(units: number, label: keyof typeof QUOTA) {
+export type QuotaLabel = keyof typeof QUOTA | "seed";
+
+export async function spendQuota(units: number, label: QuotaLabel) {
   const { data, error } = await serviceClient().rpc("add_quota", { p_units: units, p_label: label });
   if (error) console.error("quota ledger", error);
   return (data as number | null) ?? 0;
@@ -36,12 +38,12 @@ export async function quotaUsedToday(): Promise<number> {
   return (data as number | null) ?? 0;
 }
 
-async function call<T>(resource: keyof typeof QUOTA, params: Record<string, string>): Promise<T> {
+async function call<T>(resource: keyof typeof QUOTA, params: Record<string, string>, label: QuotaLabel = resource): Promise<T> {
   const url = new URL(`${BASE}/${resource}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   url.searchParams.set("key", key());
   const res = await fetch(url, { cache: "no-store" });
-  await spendQuota(QUOTA[resource], resource);
+  await spendQuota(QUOTA[resource], label);
   const body = (await res.json()) as T & { error?: { message?: string; errors?: { reason?: string }[] } };
   if (!res.ok || body.error) {
     const reason = body.error?.errors?.[0]?.reason ?? "";
@@ -121,8 +123,11 @@ interface SearchResponse {
   items: { id: { videoId?: string }; snippet: { title: string; channelId: string; channelTitle: string } }[];
 }
 
-/** 100 units. Embeddable public videos only, Spanish relevance, Chile region. */
-export async function searchList(q: string, maxResults = 25) {
+/**
+ * 100 units. Embeddable public videos only, Spanish relevance, Chile region.
+ * Label "seed" keeps one-time catalog seeding out of the nightly fallback count.
+ */
+export async function searchList(q: string, maxResults = 25, label: QuotaLabel = "search") {
   const body = await call<SearchResponse>("search", {
     part: "snippet",
     type: "video",
@@ -133,7 +138,7 @@ export async function searchList(q: string, maxResults = 25) {
     relevanceLanguage: "es",
     regionCode: "CL",
     safeSearch: "moderate",
-  });
+  }, label);
   return body.items
     .filter((i) => i.id.videoId)
     .map((i) => ({ id: i.id.videoId!, title: i.snippet.title, channelId: i.snippet.channelId, channelTitle: i.snippet.channelTitle }));

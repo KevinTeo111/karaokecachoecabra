@@ -170,7 +170,7 @@ async function syncChannel(ch: ChannelRow, deadline: number) {
 /** Runs one pending genre query: 100 units for the search plus 1 per 50 details. */
 async function runSeedQuery(q: { query: string; category: string }) {
   const db = serviceClient();
-  const results = await searchList(q.query, 50);
+  const results = await searchList(q.query, 50, "seed");
   // The expensive call is done: mark the query as run now so a later failure never repeats it.
   await db.from("catalog_queries").update({ last_run_at: new Date().toISOString() }).eq("query", q.query);
   const details = await videosList(results.map((r) => r.id));
