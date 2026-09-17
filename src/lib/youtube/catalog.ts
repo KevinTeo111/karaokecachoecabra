@@ -67,18 +67,18 @@ export async function upsertSongs(
   const usable = details.filter((d) => d.available && d.title);
   if (usable.length === 0) return 0;
   const ids = usable.map((d) => d.id);
-  const { data: existing } = await db.from("songs").select("youtube_video_id,categories").in("youtube_video_id", ids);
-  const known = new Map((existing ?? []).map((e) => [e.youtube_video_id as string, e.categories as string[]]));
-
-  const rows = usable.map((d) => {
-    const cats = new Set<string>([...(known.get(d.id) ?? []), ...guessCategories(d.title), ...extraCategories]);
-    return { ...toRow(d, source), categories: [...cats] };
-  });
-  // Keep the original source for songs that already exist.
-  const { error } = await db.from("songs").upsert(
-    rows.map((r) => (known.has(r.youtube_video_id) ? { ...r, source: undefined } : r)),
-    { onConflict: "youtube_video_id" },
+  const { data: existing } = await db.from("songs").select("youtube_video_id,categories,source").in("youtube_video_id", ids);
+  const known = new Map(
+    (existing ?? []).map((e) => [e.youtube_video_id as string, { categories: e.categories as string[], source: e.source as SongUpsert["source"] }]),
   );
+
+  // Existing songs keep their original source; categories are merged.
+  const rows = usable.map((d) => {
+    const prev = known.get(d.id);
+    const cats = new Set<string>([...(prev?.categories ?? []), ...guessCategories(d.title), ...extraCategories]);
+    return { ...toRow(d, prev?.source ?? source), categories: [...cats] };
+  });
+  const { error } = await db.from("songs").upsert(rows, { onConflict: "youtube_video_id" });
   if (error) throw error;
   return rows.filter((r) => !known.has(r.youtube_video_id)).length;
 }
@@ -160,14 +160,14 @@ async function syncChannel(ch: ChannelRow, deadline: number) {
 
 /** Runs one pending genre query: 100 units for the search plus 1 per 50 details. */
 async function runSeedQuery(q: { query: string; category: string }) {
+  const db = serviceClient();
   const results = await searchList(q.query, 50);
+  // The expensive call is done: mark the query as run now so a later failure never repeats it.
+  await db.from("catalog_queries").update({ last_run_at: new Date().toISOString() }).eq("query", q.query);
   const details = await videosList(results.map((r) => r.id));
   const karaokeOnly = details.filter((d) => karaokeScore(d.title, d.channelTitle, d.durationSec) >= 0);
   const added = await upsertSongs(karaokeOnly, "catalog", [q.category as CategorySlug]);
-  await serviceClient()
-    .from("catalog_queries")
-    .update({ last_run_at: new Date().toISOString(), result_count: karaokeOnly.length })
-    .eq("query", q.query);
+  await db.from("catalog_queries").update({ result_count: karaokeOnly.length }).eq("query", q.query);
   return { query: q.query, category: q.category, added };
 }
 
