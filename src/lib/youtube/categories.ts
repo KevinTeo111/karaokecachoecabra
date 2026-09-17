@@ -58,7 +58,9 @@ const CHANNEL_ORDER: Record<string, "artist-title" | "title-artist"> = {
   "sing king karaoke": "artist-title",
   "zoom karaoke": "artist-title",
   "karafun": "title-artist",
+  "karafun karaoke": "title-artist",
   "karafun español": "title-artist",
+  "zoom karaoke official": "artist-title",
   "karaoke version": "title-artist",
   "karaoké version": "title-artist",
   "karaoke latino": "title-artist",
@@ -66,7 +68,7 @@ const CHANNEL_ORDER: Record<string, "artist-title" | "title-artist"> = {
 };
 
 const NOISE =
-  /\b(karaoke|instrumental|con letra|sin voz|con voz|lyrics?|letra|pista|backing track|no vocals?|with vocals?|with|without|version|versi[oó]n|official|oficial|hq|hd|4k|videoke|sing along)\b/gi;
+  /\b(karaoke|instrumental|con letra|sin voz|con voz|lyrics on screen|on screen|lyrics?|letra|pista|backing track|no vocals?|with vocals?|no bvs?|with|without|version|versi[oó]n|official|oficial|hq|hd|4k|videoke|sing along)\b/gi;
 
 /** Cleans a YouTube title and, when the channel's convention is known, separates artist and title. */
 export function splitTitle(raw: string, channelTitle = ""): { title: string; artist: string } {
@@ -75,12 +77,19 @@ export function splitTitle(raw: string, channelTitle = ""): { title: string; art
     .replace(/[([{][^)\]}]*(karaoke|instrumental|lyrics?|letra|pista|version|versi[oó]n|hd|4k|official|vocals?)[^)\]}]*[)\]}]/gi, "")
     .replace(NOISE, "")
     .replace(/\*+/g, "")
-    .replace(/\s*[-–|:]\s*(?=[-–|:]|$)/g, "")
+    .replace(/\(\s*\)|\[\s*\]/g, "")
+    .replace(/\s*\|\s*/g, " | ")
+    .replace(/(\s*[-–|:]\s*){2,}/g, " - ")
     .replace(/\s{2,}/g, " ")
     .replace(/^[\s|:,.-]+|[\s|:,.-]+$/g, "")
     .trim();
   const order = CHANNEL_ORDER[channelTitle.trim().toLowerCase()];
-  const parts = cleaned.split(/\s[-–|]\s/).map((p) => p.trim()).filter(Boolean);
+  const brand = channelTitle.toLowerCase().split(/\s+/)[0] ?? "";
+  // Drop segments that are just the channel's own name, e.g. "… | KaraFun".
+  const parts = cleaned
+    .split(/\s[-–|]\s/)
+    .map((p) => p.trim())
+    .filter((p) => p && !(brand.length >= 4 && p.toLowerCase() === brand));
   if (order && parts.length >= 2) {
     const [first, ...rest] = parts;
     const second = rest.join(" - ");
