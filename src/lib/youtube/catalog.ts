@@ -98,20 +98,34 @@ export async function addChannel(ref: string) {
   return info;
 }
 
+interface ChannelRow {
+  channel_id: string;
+  title: string;
+  uploads_playlist_id: string;
+  last_published_at: string | null;
+  backfill_page_token: string | null;
+  backfill_done: boolean;
+}
+
+/** Pages per channel per run, so one huge channel cannot starve the others. */
+const MAX_PAGES_PER_RUN = 30;
+
 /**
- * Pulls a channel's uploads newest-first until it reaches videos already
- * published before the last sync, or the quota ceiling.
+ * Imports a channel's uploads. The first pass ("backfill") walks the whole
+ * playlist and can span several runs by saving its page token. After that,
+ * each run reads newest-first and stops at videos published before the
+ * last sync. Both modes stop at the deadline and the quota ceiling.
  */
-async function syncChannel(ch: { channel_id: string; title: string; uploads_playlist_id: string; last_published_at: string | null }) {
+async function syncChannel(ch: ChannelRow, deadline: number) {
   const db = serviceClient();
-  let pageToken: string | undefined;
+  let pageToken: string | undefined = ch.backfill_done ? undefined : (ch.backfill_page_token ?? undefined);
   let added = 0;
   let pages = 0;
   let newest: string | null = ch.last_published_at;
-  const stopBefore = ch.last_published_at ? Date.parse(ch.last_published_at) : 0;
+  const stopBefore = ch.backfill_done && ch.last_published_at ? Date.parse(ch.last_published_at) : 0;
+  let finished = false;
 
-  do {
-    if ((await budgetLeft()) < 60) break;
+  while (pages < MAX_PAGES_PER_RUN && Date.now() < deadline && (await budgetLeft()) >= 60) {
     const page = await playlistPage(ch.uploads_playlist_id, pageToken);
     pages += 1;
     const fresh = page.items.filter((i) => !i.publishedAt || Date.parse(i.publishedAt) > stopBefore);
@@ -121,12 +135,23 @@ async function syncChannel(ch: { channel_id: string; title: string; uploads_play
       const karaokeOnly = details.filter((d) => karaokeScore(d.title, d.channelTitle, d.durationSec) > -6);
       added += await upsertSongs(karaokeOnly, "catalog");
     }
-    pageToken = fresh.length < page.items.length ? undefined : page.next;
-  } while (pageToken);
+    const reachedOld = fresh.length < page.items.length;
+    if (!page.next || reachedOld) {
+      finished = true;
+      pageToken = undefined;
+      break;
+    }
+    pageToken = page.next;
+  }
 
   await db
     .from("catalog_channels")
-    .update({ last_synced_at: new Date().toISOString(), last_published_at: newest })
+    .update({
+      last_synced_at: new Date().toISOString(),
+      last_published_at: newest,
+      backfill_page_token: ch.backfill_done ? null : finished ? null : (pageToken ?? null),
+      backfill_done: ch.backfill_done || finished,
+    })
     .eq("channel_id", ch.channel_id);
   const { count } = await db.from("songs").select("id", { count: "exact", head: true }).eq("channel_id", ch.channel_id);
   await db.from("catalog_channels").update({ song_count: count ?? 0 }).eq("channel_id", ch.channel_id);
@@ -198,15 +223,17 @@ export async function runCatalogSync(maxMs = 50_000): Promise<SyncReport> {
 
     const { data: channels } = await db
       .from("catalog_channels")
-      .select("channel_id,title,uploads_playlist_id,last_published_at")
+      .select("channel_id,title,uploads_playlist_id,last_published_at,backfill_page_token,backfill_done")
       .eq("trusted", true)
+      .order("backfill_done", { ascending: true })
       .order("last_synced_at", { ascending: true, nullsFirst: true });
-    for (const ch of channels ?? []) {
+    const deadline = started + maxMs - 6_000;
+    for (const ch of (channels ?? []) as ChannelRow[]) {
       if (timeLeft() < 8_000 || (await budgetLeft()) < 60) {
         report.stoppedReason = timeLeft() < 8_000 ? "tiempo" : "cuota";
         break;
       }
-      report.channels.push(await syncChannel(ch));
+      report.channels.push(await syncChannel(ch, deadline));
     }
 
     const { data: queries } = await db.from("catalog_queries").select("query,category").is("last_run_at", null);
