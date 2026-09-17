@@ -34,9 +34,20 @@ export interface Song {
   categories: string[];
 }
 
+export interface CatalogChannel {
+  id: string;
+  title: string;
+  trusted: boolean;
+  note: string | null;
+  songCount: number;
+  backfillDone: boolean;
+  lastSyncAt: number | null;
+}
+
 export interface CatalogStats {
   songs: number;
   channels: number;
+  channelList: CatalogChannel[];
   lastSyncAt: number | null;
   pendingQueries: number;
   quotaUsedToday: number;

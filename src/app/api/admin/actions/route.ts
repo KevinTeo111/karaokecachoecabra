@@ -132,6 +132,17 @@ export async function POST(req: NextRequest) {
         detail = info.title;
         break;
       }
+      case "catalog/setChannelTrusted": {
+        assert(typeof action.channelId === "string" && /^UC[\w-]{20,}$/.test(action.channelId), "Canal inválido");
+        const { error } = await db
+          .from("catalog_channels")
+          .update({ trusted: action.trusted === true, note: action.trusted ? null : "Desactivado por el animador" })
+          .eq("channel_id", action.channelId);
+        if (error) throw error;
+        entityId = action.channelId;
+        detail = action.trusted ? "activado" : "desactivado";
+        break;
+      }
       case "catalog/sync": {
         const report = await runCatalogSync(45_000);
         const added = report.channels.reduce((n, c) => n + c.added, 0) + report.queries.reduce((n, q) => n + q.added, 0);

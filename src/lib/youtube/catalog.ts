@@ -64,7 +64,8 @@ export async function upsertSongs(
   extraCategories: CategorySlug[] = [],
 ): Promise<number> {
   const db = serviceClient();
-  const usable = details.filter((d) => d.available && d.title);
+  // Only public, embeddable videos are worth keeping: anything else can never play on stage.
+  const usable = details.filter((d) => d.available && d.embeddable && d.title);
   if (usable.length === 0) return 0;
   const ids = usable.map((d) => d.id);
   const { data: existing } = await db.from("songs").select("youtube_video_id,categories,source").in("youtube_video_id", ids);
@@ -132,6 +133,14 @@ async function syncChannel(ch: ChannelRow, deadline: number) {
     for (const i of fresh) if (i.publishedAt && (!newest || i.publishedAt > newest)) newest = i.publishedAt;
     if (fresh.length > 0) {
       const details = await videosList(fresh.map((i) => i.videoId));
+      // A channel that blocks embedding is useless for the stage: switch it off instead of paging on.
+      if (pages === 1 && details.length >= 10 && !details.some((d) => d.available && d.embeddable)) {
+        await db
+          .from("catalog_channels")
+          .update({ trusted: false, note: "Sus videos no permiten reproducción embebida", last_synced_at: new Date().toISOString() })
+          .eq("channel_id", ch.channel_id);
+        return { id: ch.channel_id, title: ch.title, added: 0, pages };
+      }
       const karaokeOnly = details.filter((d) => karaokeScore(d.title, d.channelTitle, d.durationSec) > -6);
       added += await upsertSongs(karaokeOnly, "catalog");
     }

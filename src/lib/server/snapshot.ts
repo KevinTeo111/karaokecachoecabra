@@ -121,11 +121,20 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
   let audit: AuditEntry[] = [];
   let catalog: CatalogStats | null = null;
   if (admin) {
-    const { data: stats } = await db.rpc("catalog_stats");
+    const [{ data: stats }, { data: channelRows }] = await Promise.all([db.rpc("catalog_stats"), db.rpc("catalog_channel_list")]);
     const s = (stats ?? {}) as Record<string, unknown>;
     catalog = {
       songs: Number(s.songs ?? 0),
       channels: Number(s.channels ?? 0),
+      channelList: ((channelRows ?? []) as Record<string, unknown>[]).map((c) => ({
+        id: c.id as string,
+        title: c.title as string,
+        trusted: Boolean(c.trusted),
+        note: (c.note as string | null) ?? null,
+        songCount: Number(c.songCount ?? 0),
+        backfillDone: Boolean(c.backfillDone),
+        lastSyncAt: c.lastSyncAt ? Date.parse(c.lastSyncAt as string) : null,
+      })),
       lastSyncAt: s.lastSyncAt ? Date.parse(s.lastSyncAt as string) : null,
       pendingQueries: Number(s.pendingQueries ?? 0),
       quotaUsedToday: Number(s.quotaUsedToday ?? 0),

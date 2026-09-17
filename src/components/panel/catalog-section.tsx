@@ -116,6 +116,30 @@ export function CatalogSection() {
         </form>
       </div>
 
+      <ul className="surface divide-y divide-white/5 rounded-2xl">
+        {catalog.channelList.map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
+            <div className="min-w-0 flex-1">
+              <p className={`truncate font-bold ${c.trusted ? "" : "text-ink-400"}`}>{c.title}</p>
+              <p className="truncate text-xs text-ink-400">
+                {c.songCount.toLocaleString("es-CL")} canciones · {c.backfillDone ? "importado" : "importando…"}
+                {c.note ? ` · ${c.note}` : ""}
+              </p>
+            </div>
+            <Button
+              variant={c.trusted ? "ghost" : "outline"}
+              size="sm"
+              disabled={busy !== null}
+              onClick={() =>
+                void run("channel", { type: "catalog/setChannelTrusted", channelId: c.id, trusted: !c.trusted }, c.trusted ? "Canal desactivado" : "Canal activado")
+              }
+            >
+              {c.trusted ? "Desactivar" : "Activar"}
+            </Button>
+          </li>
+        ))}
+      </ul>
+
       <ActionError message={error} />
       {note ? <p className="text-xs text-success">{note}</p> : null}
     </div>

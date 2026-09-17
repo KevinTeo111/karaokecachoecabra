@@ -17,7 +17,6 @@ export const isCategory = (v: string): v is CategorySlug => CATEGORIES.some((c) 
 export const DEFAULT_CHANNELS = [
   "@KaraokeLatino",
   "@KaraFunES",
-  "@singkingkaraoke",
   "@StingrayKaraoke",
   "@KaraokeVersion",
   "@ZoomKaraoke",

@@ -36,6 +36,7 @@ export type AdminAction =
   | { type: "song/addByUrl"; url: string }
   | { type: "song/flag"; songId: string; verified?: boolean; favorite?: boolean }
   | { type: "catalog/addChannel"; ref: string }
+  | { type: "catalog/setChannelTrusted"; channelId: string; trusted: boolean }
   | { type: "catalog/sync" };
 
 export type Action = GuestAction | AdminAction;
@@ -57,5 +58,6 @@ export const ADMIN_ACTION_TYPES = new Set<Action["type"]>([
   "song/addByUrl",
   "song/flag",
   "catalog/addChannel",
+  "catalog/setChannelTrusted",
   "catalog/sync",
 ]);
