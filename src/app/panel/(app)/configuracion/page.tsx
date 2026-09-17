@@ -4,6 +4,7 @@ import { Copy, RotateCcw, Tv2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ConfirmButton, SectionTitle } from "@/components/panel/bits";
+import { CatalogSection } from "@/components/panel/catalog-section";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -47,12 +48,16 @@ export default function ConfiguracionPage() {
 
   return (
     <div className="grid gap-8 xl:grid-cols-2">
+      <section className="xl:col-span-2">
+        <CatalogSection />
+      </section>
       <section className="space-y-5">
         <SectionTitle>Reglas de la noche</SectionTitle>
         {numberField("etaBufferSec", "Buffer entre canciones (s)", "Se suma al ETA por cada cambio de cantante.", 0, 300)}
         {numberField("prepareNoticeSongs", "Aviso «Prepárate» (canciones antes)", "Cuántas canciones antes se avisa al cantante.", 0, 5)}
         {numberField("minVotesForRanking", "Mínimo de votos para ranking", "Presentaciones con menos votos no entran al ranking.", 1, 50)}
         {numberField("maxActiveRequestsPerDevice", "Solicitudes activas por celular", "Cuántas canciones puede tener pendientes o en cola un mismo celular.", 1, 5)}
+        {numberField("fallbackSearchCapPerNight", "Búsquedas en YouTube por noche", "Tope de consultas a YouTube cuando el catálogo no tiene la canción (100 unidades cada una).", 0, 90)}
         <label className="surface flex items-center justify-between gap-4 rounded-2xl p-4">
           <span>
             <span className="block text-sm font-bold">Bloquear voto de la misma mesa</span>

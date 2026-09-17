@@ -1,5 +1,6 @@
 import type {
   AuditEntry,
+  CatalogStats,
   KaraokeRequest,
   KaraokeSession,
   Participant,
@@ -20,6 +21,7 @@ export const DEFAULT_SETTINGS: SessionSettings = {
   maxActiveRequestsPerDevice: 1,
   prepareNoticeSongs: 2,
   selfieRetentionHours: 24,
+  fallbackSearchCapPerNight: 60,
 };
 
 const SELFIE_URL_TTL_SEC = 60 * 60;
@@ -35,6 +37,22 @@ interface SessionRow {
 }
 
 const ms = (iso: string | null) => (iso ? Date.parse(iso) : null);
+
+/** Maps a `songs` row (any column subset that includes these) to the client type. */
+export function songFromRow(s: Record<string, unknown>): Song {
+  return {
+    id: s.id as string,
+    youtubeVideoId: s.youtube_video_id as string,
+    title: s.title as string,
+    artistGuess: (s.artist_guess as string) ?? "",
+    channelTitle: (s.channel_title as string) ?? "",
+    durationSec: (s.duration_sec as number) ?? 0,
+    embeddable: (s.embeddable as boolean) ?? true,
+    verified: (s.verified as boolean) ?? false,
+    favorite: (s.favorite as boolean) ?? false,
+    categories: (s.categories as string[]) ?? [],
+  };
+}
 
 export async function currentSession(): Promise<SessionRow> {
   const { data, error } = await serviceClient()
@@ -77,7 +95,7 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
       ? db.from("participants").select("id,device_session_id,display_name,table_number,selfie_path").in("id", participantIds)
       : Promise.resolve({ data: [], error: null }),
     songIds.length
-      ? db.from("songs").select("id,youtube_video_id,title,artist_guess,channel_title,duration_sec,embeddable,verified,favorite").in("id", songIds)
+      ? db.from("songs").select("id,youtube_video_id,title,artist_guess,channel_title,duration_sec,embeddable,verified,favorite,categories").in("id", songIds)
       : Promise.resolve({ data: [], error: null }),
     requestIds.length
       ? db.from("performances").select("*").in("request_id", requestIds)
@@ -101,7 +119,19 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
   }
 
   let audit: AuditEntry[] = [];
+  let catalog: CatalogStats | null = null;
   if (admin) {
+    const { data: stats } = await db.rpc("catalog_stats");
+    const s = (stats ?? {}) as Record<string, unknown>;
+    catalog = {
+      songs: Number(s.songs ?? 0),
+      channels: Number(s.channels ?? 0),
+      lastSyncAt: s.lastSyncAt ? Date.parse(s.lastSyncAt as string) : null,
+      pendingQueries: Number(s.pendingQueries ?? 0),
+      quotaUsedToday: Number(s.quotaUsedToday ?? 0),
+      fallbackSearchesToday: Number(s.fallbackSearchesToday ?? 0),
+      byCategory: (s.byCategory as Record<string, number>) ?? {},
+    };
     const { data } = await db
       .from("audit_log")
       .select("id,created_at,action,entity_id,payload")
@@ -132,17 +162,7 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
     selfieUrl: p.selfie_path ? signed.get(p.selfie_path) ?? null : null,
   }));
 
-  const songList: Song[] = (songs.data ?? []).map((s) => ({
-    id: s.id,
-    youtubeVideoId: s.youtube_video_id,
-    title: s.title,
-    artistGuess: s.artist_guess,
-    channelTitle: s.channel_title,
-    durationSec: s.duration_sec,
-    embeddable: s.embeddable,
-    verified: s.verified,
-    favorite: s.favorite,
-  }));
+  const songList: Song[] = (songs.data ?? []).map(songFromRow);
 
   const requests: KaraokeRequest[] = reqs.map((r) => ({
     id: r.id,
@@ -187,5 +207,6 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
     performances,
     votes,
     audit,
+    catalog,
   };
 }

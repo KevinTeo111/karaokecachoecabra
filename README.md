@@ -24,6 +24,24 @@ UI and backend in place. Screens run on a typed domain layer; state lives in Sup
 
 The `NEXT_PUBLIC_*` values are baked into the browser bundle at build time, so after changing `.env` rebuild with `docker compose up -d --build`.
 
+## YouTube catalog
+
+Guests search a local catalog, so a night of 200 people costs no YouTube quota. The catalog is fed by the trusted karaoke channels in `src/lib/youtube/categories.ts` (uploads imported at 1 quota unit per 50 videos) and by one-time genre searches for each category the venue asked for (100 units each, seeded once from `catalog_queries`). Only when the catalog has fewer than 3 hits does the search route ask YouTube, capped per night by the "Búsquedas en YouTube por noche" setting and cached for 30 days.
+
+Setup:
+
+1. The client creates a Google Cloud project, enables **YouTube Data API v3**, creates an API key and restricts it to the VPS IP and to that API. Put it in `.env` as `YOUTUBE_API_KEY`.
+2. Run `supabase/migrations/20260917010000_catalog.sql` in the SQL editor.
+3. Set `CRON_SECRET` in `.env` (`openssl rand -hex 32`) and add the nightly sync to the VPS crontab (`crontab -e`):
+
+   ```text
+   15 6 * * * curl -fsS -X POST -H "Authorization: Bearer $(grep ^CRON_SECRET= /opt/karaoke/.env | cut -d= -f2)" https://karaokecec.cl/api/cron/catalog-sync >> /var/log/karaoke-sync.log 2>&1
+   ```
+
+   Each run is bounded to ~50 s and stops at 7,000 units for the day, leaving the rest for the night. The first full seed therefore takes a few runs; "Sincronizar ahora" in the panel's Configuración triggers one on demand.
+
+The panel shows songs per category, quota used today, and lets the host add a video by URL (enters as verified) or add a channel.
+
 ## Run locally
 
 ```bash

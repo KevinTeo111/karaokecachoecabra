@@ -32,7 +32,11 @@ export type AdminAction =
   | { type: "performance/pause"; performanceId: string }
   | { type: "performance/resume"; performanceId: string }
   | { type: "performance/finish"; performanceId: string }
-  | { type: "performance/skip"; requestId: string };
+  | { type: "performance/skip"; requestId: string }
+  | { type: "song/addByUrl"; url: string }
+  | { type: "song/flag"; songId: string; verified?: boolean; favorite?: boolean }
+  | { type: "catalog/addChannel"; ref: string }
+  | { type: "catalog/sync" };
 
 export type Action = GuestAction | AdminAction;
 
@@ -50,4 +54,8 @@ export const ADMIN_ACTION_TYPES = new Set<Action["type"]>([
   "performance/resume",
   "performance/finish",
   "performance/skip",
+  "song/addByUrl",
+  "song/flag",
+  "catalog/addChannel",
+  "catalog/sync",
 ]);

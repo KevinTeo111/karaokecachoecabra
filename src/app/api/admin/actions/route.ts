@@ -5,6 +5,10 @@ import { broadcast } from "@/lib/server/realtime";
 import { buildSnapshot, currentSession } from "@/lib/server/snapshot";
 import { requireAdmin, serviceClient } from "@/lib/supabase/server";
 import { ADMIN_ACTION_TYPES, type AdminAction } from "@/lib/store/actions";
+import { parseVideoId, videosList } from "@/lib/youtube/api";
+import { addChannel, runCatalogSync, upsertSongs } from "@/lib/youtube/catalog";
+
+export const maxDuration = 60;
 
 const SETTING_KEYS = new Set([
   "etaBufferSec",
@@ -13,6 +17,7 @@ const SETTING_KEYS = new Set([
   "maxActiveRequestsPerDevice",
   "prepareNoticeSongs",
   "selfieRetentionHours",
+  "fallbackSearchCapPerNight",
 ]);
 
 /** Single entry point for every animador action. Audited and broadcast. */
@@ -92,6 +97,47 @@ export async function POST(req: NextRequest) {
           p_expected_version: Number.isInteger(action.expectedVersion) ? action.expectedVersion : null,
         });
         break;
+      case "song/addByUrl": {
+        const videoId = parseVideoId(String(action.url ?? ""));
+        assert(videoId, "Enlace de YouTube inválido");
+        const [details] = await videosList([videoId]);
+        if (!details.available) throw new HttpError(409, "El video no está disponible");
+        if (!details.embeddable) throw new HttpError(409, "El video no permite reproducción embebida");
+        await upsertSongs([details], "host");
+        await db.from("songs").update({ verified: true }).eq("youtube_video_id", videoId);
+        entityId = videoId;
+        detail = details.title;
+        break;
+      }
+      case "song/flag": {
+        assert(isUuid(action.songId), "Canción inválida");
+        const patch: Record<string, boolean> = {};
+        if (typeof action.verified === "boolean") patch.verified = action.verified;
+        if (typeof action.favorite === "boolean") patch.favorite = action.favorite;
+        assert(Object.keys(patch).length > 0, "Nada que cambiar");
+        const { error } = await db.from("songs").update(patch).eq("id", action.songId);
+        if (error) throw error;
+        entityId = action.songId;
+        detail = Object.entries(patch)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(", ");
+        break;
+      }
+      case "catalog/addChannel": {
+        const ref = String(action.ref ?? "").trim();
+        assert(ref.length >= 2, "Canal inválido");
+        const handle = ref.startsWith("http") ? (new URL(ref).pathname.split("/").filter(Boolean).pop() ?? ref) : ref;
+        const info = await addChannel(handle);
+        entityId = info.id;
+        detail = info.title;
+        break;
+      }
+      case "catalog/sync": {
+        const report = await runCatalogSync(45_000);
+        const added = report.channels.reduce((n, c) => n + c.added, 0) + report.queries.reduce((n, q) => n + q.added, 0);
+        detail = `+${added} canciones, ${report.quotaUsed} unidades${report.stoppedReason ? ` (detenido: ${report.stoppedReason})` : ""}`;
+        break;
+      }
       case "performance/pause":
       case "performance/resume":
       case "performance/finish": {

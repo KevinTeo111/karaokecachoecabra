@@ -31,6 +31,17 @@ export interface Song {
   embeddable: boolean;
   verified: boolean;
   favorite: boolean;
+  categories: string[];
+}
+
+export interface CatalogStats {
+  songs: number;
+  channels: number;
+  lastSyncAt: number | null;
+  pendingQueries: number;
+  quotaUsedToday: number;
+  fallbackSearchesToday: number;
+  byCategory: Record<string, number>;
 }
 
 export interface Participant {
@@ -84,6 +95,7 @@ export interface SessionSettings {
   maxActiveRequestsPerDevice: number;
   prepareNoticeSongs: number;
   selfieRetentionHours: number;
+  fallbackSearchCapPerNight: number;
 }
 
 export interface AuditEntry {
@@ -114,6 +126,8 @@ export interface SessionState {
   performances: Performance[];
   votes: Vote[];
   audit: AuditEntry[];
+  /** Admin snapshots only. */
+  catalog: CatalogStats | null;
 }
 
 /** Everything a screen needs about one queue entry, joined. */

@@ -10,6 +10,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { Song } from "@/lib/domain/types";
 import { useDraft } from "@/lib/store/draft";
+import { CATEGORIES, type CategorySlug } from "@/lib/youtube/categories";
+import { cn } from "@/lib/utils";
 
 const MIN_CHARS = 3;
 const DEBOUNCE_MS = 600;
@@ -18,12 +20,20 @@ export default function BuscarPage() {
   const router = useRouter();
   const { update } = useDraft();
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<CategorySlug | null>(null);
   const [results, setResults] = useState<Song[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<Song | null>(null);
 
+  const searching = query.trim().length >= MIN_CHARS;
+
   useEffect(() => {
-    if (query.trim().length < MIN_CHARS) {
+    const url = searching
+      ? `/api/search?q=${encodeURIComponent(query.trim())}`
+      : category
+        ? `/api/browse?category=${category}`
+        : null;
+    if (!url) {
       setResults(null);
       setLoading(false);
       return;
@@ -32,7 +42,7 @@ export default function BuscarPage() {
     const controller = new AbortController();
     const t = window.setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, { signal: controller.signal });
+        const res = await fetch(url, { signal: controller.signal });
         setResults(res.ok ? ((await res.json()) as Song[]) : []);
         setLoading(false);
       } catch {
@@ -41,12 +51,12 @@ export default function BuscarPage() {
           setLoading(false);
         }
       }
-    }, DEBOUNCE_MS);
+    }, searching ? DEBOUNCE_MS : 0);
     return () => {
       window.clearTimeout(t);
       controller.abort();
     };
-  }, [query]);
+  }, [query, category, searching]);
 
   const choose = (song: Song) => {
     update({ song });
@@ -70,7 +80,30 @@ export default function BuscarPage() {
         />
       </div>
 
-      <div className="mt-5 flex-1">
+      <div className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 pb-1 scrollbar-none" role="tablist" aria-label="Categorías">
+        {CATEGORIES.map((c) => {
+          const active = category === c.slug && !searching;
+          return (
+            <button
+              key={c.slug}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setCategory(active ? null : c.slug)}
+              className={cn(
+                "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition",
+                active
+                  ? "border-brand-500 bg-brand-500 text-ink-950 shadow-glow"
+                  : "border-white/10 bg-white/5 text-ink-300 hover:border-brand-500/40 hover:text-ink-100",
+              )}
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex-1">
         {loading ? (
           <ul className="space-y-3" aria-busy>
             {[0, 1, 2].map((i) => (
@@ -84,15 +117,15 @@ export default function BuscarPage() {
             ))}
           </ul>
         ) : results === null ? (
-          <p className="pt-10 text-center text-sm text-ink-400">
-            Escribe al menos {MIN_CHARS} letras. Buscamos versiones karaoke con letra.
+          <p className="pt-8 text-center text-sm text-ink-400">
+            Escribe al menos {MIN_CHARS} letras o elige una categoría. Buscamos versiones karaoke con letra.
           </p>
         ) : results.length === 0 ? (
           <div className="surface mt-6 rounded-2xl p-6 text-center">
             <SearchX className="mx-auto size-6 text-brand-400" />
-            <p className="mt-3 font-bold">No encontramos esa canción</p>
+            <p className="mt-3 font-bold">{searching ? "No encontramos esa canción" : "Todavía no hay canciones aquí"}</p>
             <p className="mt-1 text-sm text-ink-400">
-              Prueba con el nombre del artista o pídesela al animador.
+              {searching ? "Prueba con el nombre del artista o pídesela al animador." : "El animador está completando el catálogo."}
             </p>
           </div>
         ) : (

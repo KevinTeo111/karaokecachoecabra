@@ -53,8 +53,23 @@ export default function PendientesPage() {
                 </p>
                 <p className="text-xs text-ink-400">
                   {e.song.channelTitle} · {formatDuration(e.song.durationSec)}
-                  {e.song.verified ? " · Verificada" : ""}
                 </p>
+                <div className="mt-1 flex gap-3 text-[0.65rem] font-bold uppercase tracking-wider">
+                  <button
+                    type="button"
+                    className={e.song.verified ? "text-success" : "text-ink-400 hover:text-ink-100"}
+                    onClick={() => void dispatch({ type: "song/flag", songId: e.song.id, verified: !e.song.verified }).then(setError)}
+                  >
+                    {e.song.verified ? "✓ Verificada" : "Marcar verificada"}
+                  </button>
+                  <button
+                    type="button"
+                    className={e.song.favorite ? "text-brand-400" : "text-ink-400 hover:text-ink-100"}
+                    onClick={() => void dispatch({ type: "song/flag", songId: e.song.id, favorite: !e.song.favorite }).then(setError)}
+                  >
+                    {e.song.favorite ? "♥ Favorita" : "Marcar favorita"}
+                  </button>
+                </div>
               </div>
               <SongThumb song={e.song} className="w-32 max-sm:hidden" />
               <div className="flex gap-2">
