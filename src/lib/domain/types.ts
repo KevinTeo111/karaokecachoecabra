@@ -139,6 +139,8 @@ export interface SessionState {
   audit: AuditEntry[];
   /** Admin snapshots only. */
   catalog: CatalogStats | null;
+  /** Admin snapshots only: key the TV page needs to report ticks and video end. */
+  tvKey: string | null;
 }
 
 /** Everything a screen needs about one queue entry, joined. */

@@ -1,55 +1,98 @@
 "use client";
 
 import { Mic2, QrCode, Star, Trophy } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Wordmark } from "@/components/brand/wordmark";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { BrandLogo } from "@/components/brand/logo";
+import { Stars } from "@/components/brand/wordmark";
 import { YouTubePlayer, type PlayerHandle } from "@/components/player/youtube-player";
+import type { QueueEntry, SessionState } from "@/lib/domain/types";
 import {
+  joinEntry,
   selectPlaying,
   selectQueue,
   selectRanking,
   useDispatch,
+  useServerNow,
   useSessionState,
 } from "@/lib/store/hooks";
 import { formatRating } from "@/lib/utils";
 
 const TICK_EVERY_SEC = 5;
+const RESULT_SHOWN_MS = 90_000;
+const TV_KEY_STORAGE = "cec:tvkey";
+
+export default function TvPage() {
+  return (
+    <Suspense>
+      <Tv />
+    </Suspense>
+  );
+}
 
 /**
- * Stage screen. The player here is the time reference for every phone:
- * it publishes a tick every few seconds and obeys pause/resume from the panel.
+ * Stage screen. The player here is the time reference for every phone: it
+ * reports its position every few seconds, obeys pause/resume from the panel,
+ * and when the video ends it closes the performance itself so the result and
+ * the next singer appear without anyone touching the TV.
  */
-export default function TvPage() {
+function Tv() {
   const state = useSessionState();
   const dispatch = useDispatch();
+  const params = useSearchParams();
+  const now = useServerNow(1000);
   const playing = selectPlaying(state);
   const queue = selectQueue(state);
   const ranking = selectRanking(state).slice(0, 5);
   const [armed, setArmed] = useState(false);
+  const [tvKey, setTvKey] = useState<string | undefined>(undefined);
   const playerRef = useRef<PlayerHandle>(null);
   const lastTick = useRef(0);
+  const lastPaused = useRef<boolean | null>(null);
+  const endedFor = useRef<string | null>(null);
   const perf = playing?.performance ?? null;
 
+  // The key arrives once in the panel's link and is remembered for reloads.
   useEffect(() => {
-    if (!perf) return;
-    if (perf.paused) playerRef.current?.pause();
-    else playerRef.current?.play();
-  }, [perf?.paused, perf]);
+    const fromUrl = params.get("k");
+    try {
+      if (fromUrl) window.sessionStorage.setItem(TV_KEY_STORAGE, fromUrl);
+      setTvKey(fromUrl ?? window.sessionStorage.getItem(TV_KEY_STORAGE) ?? undefined);
+    } catch {
+      setTvKey(fromUrl ?? undefined);
+    }
+  }, [params]);
+
+  // React to pause/resume transitions only, never to routine state refreshes,
+  // otherwise a finished video would be restarted by the next update.
+  useEffect(() => {
+    if (!perf) {
+      lastPaused.current = null;
+      return;
+    }
+    if (lastPaused.current === null) {
+      lastPaused.current = perf.paused;
+      return;
+    }
+    if (perf.paused !== lastPaused.current) {
+      lastPaused.current = perf.paused;
+      if (perf.paused) playerRef.current?.pause();
+      else playerRef.current?.play();
+    }
+  }, [perf]);
+
+  const lastResult = latestResult(state, now);
 
   if (!armed) {
     return (
-      <button
-        type="button"
-        onClick={() => setArmed(true)}
-        className="stage-bg grid h-dvh w-dvw place-items-center text-center"
-      >
-        <span>
-          <Wordmark size="lg" />
-          <span className="text-display mt-2 block text-7xl uppercase">Karaoke Night</span>
-          <span className="mt-6 inline-block rounded-full bg-brand-500 px-8 py-3 text-sm font-bold uppercase tracking-[0.2em] text-ink-950 shadow-glow">
+      <button type="button" onClick={() => setArmed(true)} className="stage-bg grid h-dvh w-dvw place-items-center text-center">
+        <span className="flex flex-col items-center">
+          <BrandLogo className="h-[18vmin]" wordmarkSize="lg" />
+          <span className="text-display mt-[3vmin] block text-[8vmin] uppercase leading-none">Karaoke Night</span>
+          <span className="mt-[4vmin] inline-block rounded-full bg-brand-500 px-[4vmin] py-[1.5vmin] text-[2vmin] font-bold uppercase tracking-[0.2em] text-white shadow-glow">
             Activar pantalla
           </span>
-          <span className="mt-3 block text-xs text-ink-400">Un toque habilita el audio en esta TV</span>
+          <span className="mt-[2vmin] block text-[1.6vmin] text-ink-400">Un toque habilita el audio en esta TV</span>
         </span>
       </button>
     );
@@ -58,7 +101,10 @@ export default function TvPage() {
   return (
     <div className="stage-bg flex h-dvh w-dvw flex-col overflow-hidden p-[2vmin] text-ink-100">
       <header className="flex items-center justify-between px-[1vmin] pb-[1.5vmin]">
-        <p className="text-display text-[3.2vmin] uppercase tracking-wider text-brand-500">Cacho e&apos; Cabra · Karaoke Night</p>
+        <div className="flex items-center gap-[2vmin]">
+          <BrandLogo className="h-[6vmin]" wordmarkSize="md" />
+          <p className="text-display text-[3.2vmin] uppercase tracking-wider text-brand-400">Karaoke Night</p>
+        </div>
         <p className="inline-flex items-center gap-2 text-[1.8vmin] text-ink-300">
           <QrCode className="size-[2.4vmin]" /> Escanea el QR de tu mesa para cantar y votar
         </p>
@@ -76,8 +122,13 @@ export default function TvPage() {
               onTime={(t) => {
                 if (t - lastTick.current >= TICK_EVERY_SEC || t < lastTick.current) {
                   lastTick.current = t;
-                  void dispatch({ type: "performance/tick", performanceId: perf.id, playerTime: t });
+                  void dispatch({ type: "performance/tick", performanceId: perf.id, playerTime: t, tvKey });
                 }
+              }}
+              onEnded={() => {
+                if (endedFor.current === perf.id) return;
+                endedFor.current = perf.id;
+                void dispatch({ type: "performance/ended", performanceId: perf.id, tvKey });
               }}
             />
             {perf.paused ? (
@@ -88,18 +139,7 @@ export default function TvPage() {
           </div>
           <aside className="surface-brand flex flex-col items-center rounded-[2vmin] p-[2vmin] text-center">
             <p className="eyebrow text-[1.5vmin]">Ahora canta</p>
-            {playing.participant.selfieUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={playing.participant.selfieUrl}
-                alt=""
-                className="mt-[2vmin] size-[20vmin] rounded-[2vmin] object-cover shadow-glow"
-              />
-            ) : (
-              <span className="mt-[2vmin] grid size-[20vmin] place-items-center rounded-[2vmin] bg-ink-800 text-brand-400">
-                <Mic2 className="size-[8vmin]" />
-              </span>
-            )}
+            <Selfie entry={playing} className="mt-[2vmin] size-[20vmin] rounded-[2vmin]" />
             <p className="text-display mt-[2vmin] text-[4.5vmin] uppercase leading-none">{playing.participant.displayName}</p>
             <p className="text-[2vmin] font-bold text-brand-400">Mesa {playing.participant.tableNumber}</p>
             <div className="mt-[3vmin] border-t border-brand-500/30 pt-[2vmin]">
@@ -113,8 +153,35 @@ export default function TvPage() {
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-[1.2fr_1fr] gap-[2vmin]">
-          <section className="surface flex flex-col rounded-[2vmin] p-[3vmin]">
-            <p className="eyebrow text-[1.6vmin]">Próximos turnos</p>
+          <section className="surface flex min-h-0 flex-col rounded-[2vmin] p-[3vmin]">
+            {lastResult ? (
+              <div className="surface-brand mb-[2vmin] flex items-center gap-[3vmin] rounded-[1.5vmin] p-[2vmin] animate-rise">
+                <Selfie entry={lastResult} className="size-[12vmin] rounded-[1.5vmin]" />
+                <div className="min-w-0 flex-1">
+                  <p className="eyebrow text-[1.5vmin]">Resultado</p>
+                  <p className="text-display truncate text-[4vmin] uppercase leading-none">
+                    {lastResult.participant.displayName} · Mesa {lastResult.participant.tableNumber}
+                  </p>
+                  <p className="truncate text-[1.9vmin] text-ink-300">{lastResult.song.title}</p>
+                </div>
+                <div className="text-center">
+                  {lastResult.performance!.finalRating === null ? (
+                    <p className="text-display text-[3vmin] uppercase text-ink-300">Sin votos</p>
+                  ) : (
+                    <>
+                      <p className="text-display text-[7vmin] leading-none text-gold">{formatRating(lastResult.performance!.finalRating)}</p>
+                      <Stars value={lastResult.performance!.finalRating} className="justify-center" size="size-[2.2vmin]" />
+                    </>
+                  )}
+                  <p className="text-[1.6vmin] text-ink-400">
+                    {lastResult.performance!.voteCount} {lastResult.performance!.voteCount === 1 ? "voto" : "votos"}
+                    {lastResult.performance!.rank ? ` · #${lastResult.performance!.rank} de la noche` : ""}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <p className="eyebrow text-[1.6vmin]">{queue.length ? "Siguiente" : "Próximos turnos"}</p>
             {queue.length === 0 ? (
               <div className="grid flex-1 place-items-center text-center">
                 <div>
@@ -124,22 +191,27 @@ export default function TvPage() {
                 </div>
               </div>
             ) : (
-              <ol className="mt-[2vmin] flex flex-col gap-[1.5vmin]">
+              <ol className="mt-[1.5vmin] flex min-h-0 flex-col gap-[1.2vmin] overflow-hidden">
                 {queue.slice(0, 4).map((e, i) => (
-                  <li key={e.request.id} className="flex items-center gap-[2vmin] rounded-[1.5vmin] bg-white/5 p-[1.5vmin]">
+                  <li
+                    key={e.request.id}
+                    className={`flex items-center gap-[2vmin] rounded-[1.5vmin] p-[1.5vmin] ${i === 0 ? "surface-brand shadow-glow" : "bg-white/5"}`}
+                  >
                     <span className="text-display w-[4vmin] text-[5vmin] text-brand-500">{i + 1}</span>
-                    {e.participant.selfieUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={e.participant.selfieUrl} alt="" className="size-[8vmin] rounded-[1.2vmin] object-cover" />
-                    ) : null}
+                    <Selfie entry={e} className={`${i === 0 ? "size-[10vmin]" : "size-[7vmin]"} rounded-[1.2vmin]`} />
                     <div className="min-w-0">
-                      <p className="text-display truncate text-[3.4vmin] uppercase leading-none">
+                      <p className={`text-display truncate uppercase leading-none ${i === 0 ? "text-[4.2vmin]" : "text-[3.2vmin]"}`}>
                         {e.participant.displayName} · Mesa {e.participant.tableNumber}
                       </p>
                       <p className="truncate text-[1.9vmin] text-ink-300">
                         {e.song.title} · {e.song.artistGuess}
                       </p>
                     </div>
+                    {i === 0 ? (
+                      <span className="ml-auto shrink-0 rounded-full bg-brand-500 px-[1.5vmin] py-[0.6vmin] text-[1.4vmin] font-bold uppercase tracking-widest text-white">
+                        Prepárate
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ol>
@@ -164,7 +236,7 @@ export default function TvPage() {
                       </p>
                       <p className="truncate text-[1.7vmin] text-ink-300">{e.song.title}</p>
                     </div>
-                    <span className="text-display text-[4vmin]">{formatRating(e.performance?.finalRating ?? null)}</span>
+                    <span className="text-display text-[4vmin] text-gold">{formatRating(e.performance?.finalRating ?? null)}</span>
                   </li>
                 ))}
               </ol>
@@ -184,4 +256,26 @@ export default function TvPage() {
       </footer>
     </div>
   );
+}
+
+function Selfie({ entry, className }: { entry: QueueEntry; className: string }) {
+  return entry.participant.selfieUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={entry.participant.selfieUrl} alt="" className={`shrink-0 object-cover shadow-glow ${className}`} />
+  ) : (
+    <span className={`grid shrink-0 place-items-center bg-ink-800 text-brand-400 ${className}`}>
+      <Mic2 className="size-1/2" />
+    </span>
+  );
+}
+
+/** The performance that finished most recently, while its result is still fresh. */
+function latestResult(state: SessionState, now: number): QueueEntry | null {
+  const recent = state.performances
+    .filter((p) => p.endedAt !== null && now - p.endedAt < RESULT_SHOWN_MS)
+    .sort((a, b) => b.endedAt! - a.endedAt!)[0];
+  if (!recent) return null;
+  const r = state.requests.find((x) => x.id === recent.requestId);
+  if (!r || r.status !== "COMPLETED") return null;
+  return joinEntry(state, r);
 }

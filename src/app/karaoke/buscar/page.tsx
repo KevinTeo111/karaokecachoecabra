@@ -93,7 +93,7 @@ export default function BuscarPage() {
               className={cn(
                 "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition",
                 active
-                  ? "border-brand-500 bg-brand-500 text-ink-950 shadow-glow"
+                  ? "border-brand-500 bg-brand-500 text-white shadow-glow"
                   : "border-white/10 bg-white/5 text-ink-300 hover:border-brand-500/40 hover:text-ink-100",
               )}
             >

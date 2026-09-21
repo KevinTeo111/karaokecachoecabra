@@ -44,7 +44,7 @@ export function CatalogSection() {
       <div className="surface grid grid-cols-2 gap-4 rounded-2xl p-4 text-sm sm:grid-cols-4">
         <Stat label="Canciones" value={catalog.songs.toLocaleString("es-CL")} />
         <Stat label="Canales" value={String(catalog.channels)} />
-        <Stat label="Búsquedas YouTube hoy" value={`${catalog.fallbackSearchesToday} / ${settings.fallbackSearchCapPerNight}`} />
+        <Stat label="Consultas de respaldo hoy" value={`${catalog.fallbackSearchesToday} / ${settings.fallbackSearchCapPerNight}`} />
         <Stat
           label="Última sincronización"
           value={catalog.lastSyncAt ? new Date(catalog.lastSyncAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" }) : "nunca"}

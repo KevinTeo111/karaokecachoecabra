@@ -48,7 +48,7 @@ export function SongCard({
       >
         <SongThumb song={song} />
         <span className="absolute inset-0 grid place-items-center">
-          <span className="grid size-9 place-items-center rounded-full bg-ink-950/70 text-ink-100 ring-1 ring-white/20 transition group-hover:bg-brand-500 group-hover:text-ink-950">
+          <span className="grid size-9 place-items-center rounded-full bg-ink-950/70 text-ink-100 ring-1 ring-white/20 transition group-hover:bg-brand-500 group-hover:text-white">
             <Play className="size-4 fill-current" />
           </span>
         </span>

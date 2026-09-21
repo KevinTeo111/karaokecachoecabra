@@ -3,7 +3,7 @@
 import { Clock3, History, Inbox, ListOrdered, LogOut, Mic2, Settings2, Tv2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Wordmark } from "@/components/brand/wordmark";
+import { BrandLogo } from "@/components/brand/logo";
 import { Badge, LiveDot } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { selectPending, selectQueue, useDispatch, useSessionState, useStore } from "@/lib/store/hooks";
@@ -35,8 +35,8 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh grid-cols-[15rem_1fr] bg-ink-950 text-ink-100 max-lg:grid-cols-1">
       <aside className="flex flex-col border-r border-white/5 bg-ink-900 px-4 py-6 max-lg:hidden">
-        <Wordmark size="sm" />
-        <p className="text-display mt-1 text-3xl uppercase">Panel karaoke</p>
+        <BrandLogo className="h-12 self-start" wordmarkSize="sm" />
+        <p className="text-display mt-2 text-3xl uppercase">Panel karaoke</p>
         <nav className="mt-8 flex flex-col gap-1">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
@@ -62,7 +62,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <Link
-          href={`/tv/${state.session.id}`}
+          href={`/tv/${state.session.id}${state.tvKey ? `?k=${encodeURIComponent(state.tvKey)}` : ""}`}
           target="_blank"
           className="mt-auto flex items-center gap-3 rounded-xl border border-white/10 px-3 py-2.5 text-sm font-semibold text-ink-300 hover:bg-white/5 hover:text-ink-100"
         >
@@ -105,7 +105,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
               href={href}
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider",
-                pathname.startsWith(href) ? "bg-brand-500 text-ink-950" : "text-ink-300",
+                pathname.startsWith(href) ? "bg-brand-500 text-white" : "text-ink-300",
               )}
             >
               {label}

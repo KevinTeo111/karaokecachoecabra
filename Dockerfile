@@ -14,7 +14,7 @@ ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN mkdir -p public && npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -22,6 +22,7 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
+COPY --from=build --chown=app:app /app/public ./public
 USER app
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \

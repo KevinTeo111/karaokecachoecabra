@@ -82,7 +82,7 @@ export default function VotarPage() {
                 onClick={() => setStars(n)}
                 className={cn(
                   "grid size-12 place-items-center rounded-full transition active:scale-90",
-                  active ? "text-brand-500 drop-shadow-[0_0_12px_rgb(242_169_59/0.6)]" : "text-ink-600",
+                  active ? "text-gold drop-shadow-[0_0_12px_rgb(242_181_59/0.6)]" : "text-ink-600",
                 )}
               >
                 <StarIcon className="size-9" />
@@ -95,7 +95,7 @@ export default function VotarPage() {
 
       {myVote ? (
         <div className="surface-brand mt-6 flex items-center gap-3 rounded-2xl p-4 animate-rise">
-          <span className="grid size-8 place-items-center rounded-full bg-brand-500 text-ink-950">
+          <span className="grid size-8 place-items-center rounded-full bg-brand-500 text-white">
             <Check className="size-4" />
           </span>
           <p className="text-sm">¡Voto enviado! El promedio se revela cuando termine la canción.</p>

@@ -184,7 +184,9 @@ function route(action: Action): { url: string; body: unknown } {
     case "vote/cast":
       return { url: "/api/votes", body: { performanceId: action.performanceId, stars: action.stars } };
     case "performance/tick":
-      return { url: `/api/performances/${action.performanceId}/tick`, body: { playerTime: action.playerTime } };
+      return { url: `/api/performances/${action.performanceId}/tick`, body: { playerTime: action.playerTime, tvKey: action.tvKey } };
+    case "performance/ended":
+      return { url: `/api/performances/${action.performanceId}/ended`, body: { tvKey: action.tvKey } };
     default:
       return { url: "/api/admin/actions", body: action };
   }

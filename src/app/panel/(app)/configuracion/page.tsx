@@ -14,7 +14,7 @@ import { useDispatch, useSessionState } from "@/lib/store/hooks";
 const TABLES = 20;
 
 export default function ConfiguracionPage() {
-  const { settings, session, audit } = useSessionState();
+  const { settings, session, audit, tvKey } = useSessionState();
   const dispatch = useDispatch();
   const [copied, setCopied] = useState<number | null>(null);
 
@@ -57,7 +57,7 @@ export default function ConfiguracionPage() {
         {numberField("prepareNoticeSongs", "Aviso «Prepárate» (canciones antes)", "Cuántas canciones antes se avisa al cantante.", 0, 5)}
         {numberField("minVotesForRanking", "Mínimo de votos para ranking", "Presentaciones con menos votos no entran al ranking.", 1, 50)}
         {numberField("maxActiveRequestsPerDevice", "Solicitudes activas por celular", "Cuántas canciones puede tener pendientes o en cola un mismo celular.", 1, 5)}
-        {numberField("fallbackSearchCapPerNight", "Búsquedas en YouTube por noche", "Tope de consultas a YouTube cuando el catálogo no tiene la canción (100 unidades cada una).", 0, 90)}
+        {numberField("fallbackSearchCapPerNight", "Consultas de respaldo a YouTube por noche", "No limita a los clientes: ellos buscan en el catálogo local sin límite. Solo cuenta las veces que el sistema consulta YouTube cuando una canción no está en el catálogo (100 unidades cada una).", 0, 90)}
         <label className="surface flex items-center justify-between gap-4 rounded-2xl p-4">
           <span>
             <span className="block text-sm font-bold">Bloquear voto de la misma mesa</span>
@@ -71,7 +71,7 @@ export default function ConfiguracionPage() {
         <div>
           <SectionTitle>Pantallas</SectionTitle>
           <Button variant="outline" asChild>
-            <Link href={`/tv/${session.id}`} target="_blank">
+            <Link href={`/tv/${session.id}${tvKey ? `?k=${encodeURIComponent(tvKey)}` : ""}`} target="_blank">
               <Tv2 className="size-4" /> Abrir TV en otra ventana
             </Link>
           </Button>

@@ -50,17 +50,18 @@ export default function SelfiePage() {
     return stopCamera;
   }, [shot, startCamera, stopCamera]);
 
-  const capture = () => {
+  const capture = async () => {
     if (!videoRef.current) return;
-    setShot(renderFramedSelfie(videoRef.current, caption));
+    const shot = await renderFramedSelfie(videoRef.current, caption);
+    setShot(shot);
     stopCamera();
   };
 
   const fromFile = (file: File | undefined) => {
     if (!file) return;
     const img = new Image();
-    img.onload = () => {
-      setShot(renderFramedSelfie(img, caption, 720, false));
+    img.onload = async () => {
+      setShot(await renderFramedSelfie(img, caption, 720, false));
       URL.revokeObjectURL(img.src);
     };
     img.src = URL.createObjectURL(file);
@@ -128,7 +129,7 @@ export default function SelfiePage() {
         <div className="mt-6 flex flex-col items-center gap-4">
           <button
             type="button"
-            onClick={capture}
+            onClick={() => void capture()}
             disabled={camera !== "ready"}
             aria-label="Tomar foto"
             className="grid size-20 place-items-center rounded-full border-4 border-brand-500 bg-ink-950 text-brand-400 shadow-glow transition active:scale-95 disabled:opacity-40"
@@ -159,7 +160,7 @@ export default function SelfiePage() {
 function FrameOverlay({ caption }: { caption: string }) {
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between rounded-3xl border-[6px] border-brand-500 p-5">
-      <span className="rounded-full bg-ink-950/60 px-3 py-1 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-brand-400">
+      <span className="rounded-full bg-ink-950/70 px-3 py-1 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white">
         ★ Karaoke Night ★
       </span>
       <span className="rounded-full bg-ink-950/60 px-3 py-1 text-xs font-bold uppercase tracking-widest text-ink-100">

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "./logo";
 
 export function Wordmark({ className, size = "md" }: { className?: string; size?: "sm" | "md" | "lg" }) {
   const sizes = { sm: "text-[0.65rem]", md: "text-xs", lg: "text-base" };
@@ -22,8 +23,8 @@ export function ScreenHeader({
 }) {
   return (
     <header className={cn("flex flex-col items-center text-center animate-rise", className)}>
-      <Wordmark />
-      <h1 className="text-display mt-2 text-4xl uppercase text-ink-100">{title}</h1>
+      <BrandLogo className="h-10" wordmarkSize="sm" />
+      <h1 className="text-display mt-3 text-4xl uppercase text-ink-100">{title}</h1>
       {subtitle ? <p className="mt-2 max-w-xs text-sm text-ink-400">{subtitle}</p> : null}
     </header>
   );
@@ -49,7 +50,7 @@ export function Stars({
   return (
     <span className={cn("inline-flex items-center gap-0.5", className)} aria-label={`${value} de 5`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <StarIcon key={i} className={cn(size, i <= Math.round(value) ? "text-brand-500" : "text-ink-600")} />
+        <StarIcon key={i} className={cn(size, i <= Math.round(value) ? "text-gold" : "text-ink-600")} />
       ))}
     </span>
   );

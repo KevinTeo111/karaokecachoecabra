@@ -16,7 +16,8 @@ export type GuestAction =
     }
   | { type: "request/cancel"; requestId: string }
   | { type: "vote/cast"; performanceId: string; stars: Vote["stars"] }
-  | { type: "performance/tick"; performanceId: string; playerTime: number };
+  | { type: "performance/tick"; performanceId: string; playerTime: number; tvKey?: string }
+  | { type: "performance/ended"; performanceId: string; tvKey?: string };
 
 export type AdminAction =
   | { type: "session/setStatus"; status: SessionStatus }

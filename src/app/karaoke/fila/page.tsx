@@ -140,7 +140,7 @@ function Prepare({ entry, ahead }: { entry: QueueEntry; ahead: number }) {
       <div className="my-10 flex justify-center">
         <span className="relative grid size-28 place-items-center">
           <span className="absolute inset-0 rounded-full border-2 border-brand-500/50 animate-pulse-ring" />
-          <span className="grid size-20 place-items-center rounded-full bg-brand-500 text-ink-950 shadow-glow">
+          <span className="grid size-20 place-items-center rounded-full bg-brand-500 text-white shadow-glow">
             <Bell className="size-8" />
           </span>
         </span>
@@ -169,7 +169,7 @@ function Called({ entry }: { entry: QueueEntry }) {
         <span className="relative grid size-32 place-items-center">
           <span className="absolute inset-0 rounded-full border-2 border-brand-500/60 animate-pulse-ring" />
           <span className="absolute inset-2 rounded-full border-2 border-brand-500/40 animate-pulse-ring [animation-delay:0.6s]" />
-          <span className="grid size-24 place-items-center rounded-full bg-brand-500 text-ink-950 shadow-glow">
+          <span className="grid size-24 place-items-center rounded-full bg-brand-500 text-white shadow-glow">
             <Mic2 className="size-10" />
           </span>
         </span>

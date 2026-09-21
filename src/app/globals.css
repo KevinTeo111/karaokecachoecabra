@@ -15,11 +15,12 @@
   --color-ink-200: #d3d3de;
   --color-ink-100: #f2f2f7;
 
-  --color-brand-300: #ffd27a;
-  --color-brand-400: #f8bb4a;
-  --color-brand-500: #f2a93b;
-  --color-brand-600: #d98c1f;
-  --color-brand-700: #a86612;
+  --color-brand-300: #ff8a97;
+  --color-brand-400: #ff4d63;
+  --color-brand-500: #e4002b;
+  --color-brand-600: #b8001f;
+  --color-brand-700: #870017;
+  --color-gold: #f2b53b;
 
   --color-success: #3ddc84;
   --color-danger: #ff5d6c;
@@ -28,7 +29,7 @@
   --radius-xl: 1.25rem;
   --radius-2xl: 1.75rem;
 
-  --shadow-glow: 0 0 0 1px rgb(242 169 59 / 0.35), 0 12px 48px -12px rgb(242 169 59 / 0.45);
+  --shadow-glow: 0 0 0 1px rgb(228 0 43 / 0.4), 0 12px 48px -12px rgb(228 0 43 / 0.55);
   --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 20px 40px -24px rgb(0 0 0 / 0.8);
 
   --animate-pulse-ring: pulse-ring 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
@@ -80,7 +81,7 @@ body {
 
 ::selection {
   background: var(--color-brand-500);
-  color: var(--color-ink-950);
+  color: #fff;
 }
 
 @utility text-display {
@@ -104,8 +105,8 @@ body {
 }
 
 @utility surface-brand {
-  background: linear-gradient(180deg, rgb(242 169 59 / 0.14), rgb(242 169 59 / 0.05));
-  border: 1px solid rgb(242 169 59 / 0.4);
+  background: linear-gradient(180deg, rgb(228 0 43 / 0.16), rgb(228 0 43 / 0.05));
+  border: 1px solid rgb(228 0 43 / 0.45);
 }
 
 @utility skeleton {
@@ -116,8 +117,8 @@ body {
 
 @utility stage-bg {
   background:
-    radial-gradient(60% 40% at 50% 0%, rgb(242 169 59 / 0.16), transparent 70%),
-    radial-gradient(40% 30% at 100% 100%, rgb(106 168 255 / 0.08), transparent 70%),
+    radial-gradient(60% 40% at 50% 0%, rgb(228 0 43 / 0.22), transparent 70%),
+    radial-gradient(40% 30% at 100% 100%, rgb(255 255 255 / 0.05), transparent 70%),
     var(--color-ink-950);
 }
 

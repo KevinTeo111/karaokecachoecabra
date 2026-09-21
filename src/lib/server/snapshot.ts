@@ -13,6 +13,7 @@ import type {
 } from "@/lib/domain/types";
 import { serviceClient } from "@/lib/supabase/server";
 import { HttpError } from "./http";
+import { tvKey } from "./tv";
 
 export const DEFAULT_SETTINGS: SessionSettings = {
   etaBufferSec: 45,
@@ -217,5 +218,6 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
     votes,
     audit,
     catalog,
+    tvKey: admin ? tvKey() : null,
   };
 }

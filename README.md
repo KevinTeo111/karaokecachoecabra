@@ -20,7 +20,8 @@ UI and backend in place. Screens run on a typed domain layer; state lives in Sup
    ```
 
    Use `'HOST'` for animadores who should not open new nights.
-4. Fill `.env` (see `.env.example`). `DEVICE_TOKEN_SECRET` is any random string of 32+ characters, for example the output of `openssl rand -hex 32`.
+4. Fill `.env` (see `.env.example`). `DEVICE_TOKEN_SECRET` and `TV_KEY` are random strings (`openssl rand -hex 32` / `openssl rand -hex 8`). The panel puts `TV_KEY` into the "Abrir TV" link; only a screen opened from that link can report playback or end a performance.
+5. Put the venue logo at `public/brand/logo.png` (transparent PNG or SVG renamed to .png is fine). It appears on every screen and inside the selfie frame; until it exists a text wordmark is shown.
 
 The `NEXT_PUBLIC_*` values are baked into the browser bundle at build time, so after changing `.env` rebuild with `docker compose up -d --build`.
 
