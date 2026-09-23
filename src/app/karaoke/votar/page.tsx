@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { ScreenHeader, StarIcon } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 import type { Vote } from "@/lib/domain/types";
-import { selectPlaying, useDispatch, useSessionState } from "@/lib/store/hooks";
+import { selectMine, selectPlaying, useDispatch, useSessionState } from "@/lib/store/hooks";
+import { ACTIVE_STATUSES } from "@/lib/domain/types";
 import { cn, tableLabel } from "@/lib/utils";
 
 const LABELS = ["", "Ánimo", "Bien", "Muy bien", "Excelente", "¡Ídolo!"];
@@ -19,11 +20,19 @@ export default function VotarPage() {
   const playing = selectPlaying(state);
   const [stars, setStars] = useState<Vote["stars"] | 0>(0);
   const [error, setError] = useState<string | null>(null);
+  const [votedPerf, setVotedPerf] = useState<string | null>(null);
+  const mine = selectMine(state);
+  const hasActive = mine ? ACTIVE_STATUSES.includes(mine.request.status) : false;
 
   const isMe = playing?.participant.mine === true;
   useEffect(() => {
     if (isMe) router.replace("/karaoke/cantando");
   }, [isMe, router]);
+
+  // The song I voted for has ended: show its result instead of a dead end.
+  useEffect(() => {
+    if (votedPerf && playing?.performance?.id !== votedPerf) router.replace(`/karaoke/resultado?perf=${votedPerf}`);
+  }, [votedPerf, playing, router]);
 
   if (!playing || !playing.performance) {
     return (
@@ -47,7 +56,9 @@ export default function VotarPage() {
 
   const submit = async () => {
     if (!stars) return;
-    setError(await dispatch({ type: "vote/cast", performanceId: perfId, stars }));
+    const err = await dispatch({ type: "vote/cast", performanceId: perfId, stars });
+    setError(err);
+    if (!err) setVotedPerf(perfId);
   };
 
   return (
@@ -94,11 +105,19 @@ export default function VotarPage() {
       </div>
 
       {myVote ? (
-        <div className="surface-brand mt-6 flex items-center gap-3 rounded-2xl p-4 animate-rise">
-          <span className="grid size-8 place-items-center rounded-full bg-brand-500 text-white">
-            <Check className="size-4" />
-          </span>
-          <p className="text-sm">¡Voto enviado! El promedio se revela cuando termine la canción.</p>
+        <div className="mt-6 flex flex-col gap-3 animate-rise">
+          <div className="surface-brand flex items-center gap-3 rounded-2xl p-4">
+            <span className="grid size-8 place-items-center rounded-full bg-brand-500 text-white">
+              <Check className="size-4" />
+            </span>
+            <p className="text-sm">¡Voto enviado! El promedio se revela cuando termine la canción.</p>
+          </div>
+          <Button size="lg" block asChild>
+            <Link href={hasActive ? "/karaoke/fila" : "/karaoke/buscar"}>{hasActive ? "Ver mi turno" : "Pedir mi canción"}</Link>
+          </Button>
+          <Button variant="secondary" size="lg" block asChild>
+            <Link href="/karaoke">Volver al inicio</Link>
+          </Button>
         </div>
       ) : (
         <>

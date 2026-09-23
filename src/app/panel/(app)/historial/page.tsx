@@ -4,7 +4,7 @@ import { Avatar, EmptyState, SectionTitle } from "@/components/panel/bits";
 import { Stars } from "@/components/brand/wordmark";
 import { Badge } from "@/components/ui/badge";
 import { STATUS_LABEL } from "@/lib/domain/state-machine";
-import { selectHistory, selectRanking, useSessionState } from "@/lib/store/hooks";
+import { selectHistory, selectRanking, selectTableRanking, useSessionState } from "@/lib/store/hooks";
 import { formatRating, tableLabel } from "@/lib/utils";
 
 const TONE = { COMPLETED: "success", SKIPPED: "neutral", REJECTED: "danger", CANCELLED: "neutral" } as const;
@@ -13,6 +13,7 @@ export default function HistorialPage() {
   const state = useSessionState();
   const history = selectHistory(state);
   const ranking = selectRanking(state);
+  const tableRanking = selectTableRanking(state);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
@@ -48,7 +49,8 @@ export default function HistorialPage() {
         )}
       </section>
 
-      <section>
+      <section className="space-y-6">
+        <div>
         <SectionTitle>Ranking</SectionTitle>
         {ranking.length === 0 ? (
           <EmptyState>Mínimo {state.settings.minVotesForRanking} votos por presentación</EmptyState>
@@ -68,6 +70,28 @@ export default function HistorialPage() {
             ))}
           </ol>
         )}
+        </div>
+        <div>
+          <SectionTitle>Ranking por mesa</SectionTitle>
+          {tableRanking.length === 0 ? (
+            <EmptyState>Promedio de las presentaciones de cada mesa que alcanzan el mínimo de votos</EmptyState>
+          ) : (
+            <ol className="surface divide-y divide-white/5 rounded-2xl">
+              {tableRanking.map((t, i) => (
+                <li key={t.tableNumber} className="flex items-center gap-3 px-4 py-3">
+                  <span className="w-8 text-display text-3xl text-brand-500">#{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold">Mesa {t.tableNumber}</p>
+                    <p className="text-xs text-ink-400">
+                      {t.performances} {t.performances === 1 ? "canción" : "canciones"} · {t.votes} votos
+                    </p>
+                  </div>
+                  <span className="text-display text-2xl">{formatRating(t.rating)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       </section>
     </div>
   );

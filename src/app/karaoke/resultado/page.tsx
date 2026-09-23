@@ -101,9 +101,12 @@ function Resultado() {
         )}
       </div>
 
-      <div className="mt-auto pt-6">
+      <div className="mt-auto flex flex-col gap-3 pt-6">
         <Button size="lg" block asChild>
           <Link href="/karaoke/buscar">{isMine ? "Cantar otra" : "Pedir mi canción"}</Link>
+        </Button>
+        <Button variant="secondary" size="lg" block asChild>
+          <Link href="/karaoke">Volver al inicio</Link>
         </Button>
       </div>
     </div>

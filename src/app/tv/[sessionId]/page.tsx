@@ -12,7 +12,9 @@ import {
   joinEntry,
   selectPlaying,
   selectQueue,
+  selectAwaitingVotes,
   selectRanking,
+  selectTableRanking,
   useDispatch,
   useServerNow,
   useSessionState,
@@ -45,6 +47,8 @@ function Tv() {
   const playing = selectPlaying(state);
   const queue = selectQueue(state);
   const ranking = selectRanking(state).slice(0, 5);
+  const tableRanking = selectTableRanking(state).slice(0, 5);
+  const awaiting = selectAwaitingVotes(state);
   const [armed, setArmed] = useState(false);
   const [tvKey, setTvKey] = useState<string | undefined>(undefined);
   const playerRef = useRef<PlayerHandle>(null);
@@ -230,7 +234,8 @@ function Tv() {
             </p>
             {ranking.length === 0 ? (
               <p className="mt-[2vmin] text-[2vmin] text-ink-300">
-                El ranking aparece cuando una presentación reúne {state.settings.minVotesForRanking} votos.
+                Entra al ranking quien reúna {state.settings.minVotesForRanking} votos.
+                {awaiting > 0 ? ` ${awaiting} ${awaiting === 1 ? "presentación espera" : "presentaciones esperan"} más votos.` : ""}
               </p>
             ) : (
               <ol className="mt-[2vmin] flex flex-col gap-[1.2vmin]">
@@ -248,6 +253,23 @@ function Tv() {
                 ))}
               </ol>
             )}
+            {tableRanking.length > 0 ? (
+              <>
+                <p className="eyebrow mt-[3vmin] text-[1.6vmin]">Mesas</p>
+                <ol className="mt-[1.5vmin] flex flex-col gap-[0.8vmin]">
+                  {tableRanking.map((t, i) => (
+                    <li key={t.tableNumber} className="flex items-center gap-[1.5vmin]">
+                      <span className="text-display w-[5vmin] text-[3.4vmin] text-brand-500">#{i + 1}</span>
+                      <p className="flex-1 truncate text-[2.2vmin] font-bold uppercase">Mesa {t.tableNumber}</p>
+                      <span className="text-[1.6vmin] text-ink-400">
+                        {t.performances} {t.performances === 1 ? "canción" : "canciones"} · {t.votes} votos
+                      </span>
+                      <span className="text-display text-[3.2vmin] text-gold">{formatRating(t.rating)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : null}
           </section>
         </div>
       )}

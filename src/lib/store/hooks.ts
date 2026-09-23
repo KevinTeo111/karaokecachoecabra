@@ -98,6 +98,43 @@ export function selectRanking(state: SessionState) {
     .filter((e): e is QueueEntry => e !== null);
 }
 
+export interface TableRank {
+  tableNumber: number;
+  /** Vote-weighted average of the table's eligible performances, 1 decimal. */
+  rating: number;
+  performances: number;
+  votes: number;
+}
+
+/**
+ * Ranking by table: performances that reached the vote minimum, grouped by
+ * table, scored by the vote-weighted average of their ratings. The animador's
+ * own songs never compete.
+ */
+export function selectTableRanking(state: SessionState): TableRank[] {
+  const byTable = new Map<number, { sum: number; votes: number; performances: number }>();
+  for (const p of rankPerformances(state.performances, state.settings.minVotesForRanking)) {
+    const r = state.requests.find((x) => x.id === p.requestId);
+    const participant = r && state.participants.find((x) => x.id === r.participantId);
+    if (!participant || participant.tableNumber === 999) continue;
+    const t = byTable.get(participant.tableNumber) ?? { sum: 0, votes: 0, performances: 0 };
+    t.sum += p.finalRating! * p.voteCount;
+    t.votes += p.voteCount;
+    t.performances += 1;
+    byTable.set(participant.tableNumber, t);
+  }
+  return [...byTable.entries()]
+    .map(([tableNumber, t]) => ({ tableNumber, rating: Math.round((t.sum / t.votes) * 10) / 10, performances: t.performances, votes: t.votes }))
+    .sort((a, b) => b.rating - a.rating || b.votes - a.votes);
+}
+
+/** Completed performances that got votes but fewer than the ranking minimum. */
+export function selectAwaitingVotes(state: SessionState) {
+  return state.performances.filter(
+    (p) => p.endedAt !== null && p.finalRating !== null && p.voteCount > 0 && p.voteCount < state.settings.minVotesForRanking,
+  ).length;
+}
+
 /** This device's most relevant request: an active one first, else the latest finished one. */
 export function selectMine(state: SessionState): QueueEntry | null {
   const mine = state.requests.filter((r) => state.participants.find((p) => p.id === r.participantId)?.mine);
