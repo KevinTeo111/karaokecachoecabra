@@ -23,7 +23,7 @@ export function ScreenHeader({
 }) {
   return (
     <header className={cn("flex flex-col items-center text-center animate-rise", className)}>
-      <BrandLogo className="h-10" wordmarkSize="sm" />
+      <BrandLogo className="h-16" wordmarkSize="sm" />
       <h1 className="text-display mt-3 text-4xl uppercase text-ink-100">{title}</h1>
       {subtitle ? <p className="mt-2 max-w-xs text-sm text-ink-400">{subtitle}</p> : null}
     </header>

@@ -1,5 +1,6 @@
 "use client";
 
+import { tableLabel } from "@/lib/utils";
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -24,7 +25,7 @@ export function NowPlayingBanner() {
       <div className="min-w-0 flex-1">
         <p className="eyebrow">Ahora canta</p>
         <p className="truncate text-sm font-bold text-ink-100">
-          {playing.participant.displayName} · Mesa {playing.participant.tableNumber} · {playing.song.title}
+          {playing.participant.displayName} · {tableLabel(playing.participant.tableNumber)} · {playing.song.title}
         </p>
       </div>
       <span className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-3 py-1.5 text-[0.7rem] font-bold uppercase tracking-wider text-ink-950">

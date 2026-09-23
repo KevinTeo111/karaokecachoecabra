@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { STATUS_LABEL } from "@/lib/domain/state-machine";
 import type { QueueEntry } from "@/lib/domain/types";
 import { useDeviceId, useDispatch, useMyEntry, useQueuePosition, useSessionState } from "@/lib/store/hooks";
-import { formatMinutes } from "@/lib/utils";
+import { formatMinutes, tableLabel } from "@/lib/utils";
 
 export default function FilaPage() {
   const router = useRouter();
@@ -68,7 +68,7 @@ function SongSummary({ entry }: { entry: QueueEntry }) {
         <Mic2 className="size-4 text-brand-400" /> {entry.song.title}
       </p>
       <p className="mt-1 text-xs text-ink-400">
-        {entry.song.artistGuess} · {entry.participant.displayName} · Mesa {entry.participant.tableNumber}
+        {entry.song.artistGuess} · {entry.participant.displayName} · {tableLabel(entry.participant.tableNumber)}
       </p>
       <Badge tone={entry.request.status === "CALLED" ? "brand" : "success"} className="mt-3">
         Estado: {STATUS_LABEL[entry.request.status]}
@@ -151,7 +151,7 @@ function Prepare({ entry, ahead }: { entry: QueueEntry; ahead: number }) {
       <div className="surface-brand mt-8 rounded-2xl p-5 text-center">
         <p className="text-display text-3xl uppercase">{entry.song.title}</p>
         <p className="mt-1 text-xs text-ink-300">
-          {entry.song.artistGuess} · Mesa {entry.participant.tableNumber}
+          {entry.song.artistGuess} · {tableLabel(entry.participant.tableNumber)}
         </p>
       </div>
     </div>

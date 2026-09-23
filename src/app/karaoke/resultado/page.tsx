@@ -8,7 +8,7 @@ import { ScreenHeader, Stars } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 import { starBreakdown } from "@/lib/domain/rating";
 import { joinEntry, useMyEntry, useSessionState } from "@/lib/store/hooks";
-import { formatRating } from "@/lib/utils";
+import { formatRating, tableLabel } from "@/lib/utils";
 
 export default function ResultadoPage() {
   return (
@@ -73,7 +73,7 @@ function Resultado() {
 
       <div className="surface rounded-2xl p-5 text-center">
         <p className="font-bold uppercase tracking-wider">
-          {entry.participant.displayName} · Mesa {entry.participant.tableNumber}
+          {entry.participant.displayName} · {tableLabel(entry.participant.tableNumber)}
         </p>
         <p className="mt-1 text-xs text-ink-400">
           {entry.song.title} · {entry.song.artistGuess}

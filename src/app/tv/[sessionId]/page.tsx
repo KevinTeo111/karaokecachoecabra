@@ -3,7 +3,8 @@
 import { Mic2, QrCode, Star, Trophy } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { BrandLogo } from "@/components/brand/logo";
+import { BrandLogo, LogoCarousel } from "@/components/brand/logo";
+import { logoIntervalMs, tempoForCategories, useBeatClock } from "@/lib/beat";
 import { Stars } from "@/components/brand/wordmark";
 import { YouTubePlayer, type PlayerHandle } from "@/components/player/youtube-player";
 import type { QueueEntry, SessionState } from "@/lib/domain/types";
@@ -16,7 +17,7 @@ import {
   useServerNow,
   useSessionState,
 } from "@/lib/store/hooks";
-import { formatRating } from "@/lib/utils";
+import { formatRating, tableLabel } from "@/lib/utils";
 
 const TICK_EVERY_SEC = 5;
 const RESULT_SHOWN_MS = 90_000;
@@ -51,6 +52,11 @@ function Tv() {
   const lastPaused = useRef<boolean | null>(null);
   const endedFor = useRef<string | null>(null);
   const perf = playing?.performance ?? null;
+
+  // Logo rhythm: the room's beat when the TV device has a microphone, else the song's genre tempo.
+  const beat = useBeatClock(armed);
+  const bpm = beat.bpm ?? tempoForCategories(playing?.song.categories ?? []);
+  const logoEvery = logoIntervalMs(bpm, playing ? 8 : 16);
 
   // The key arrives once in the panel's link and is remembered for reloads.
   useEffect(() => {
@@ -87,7 +93,7 @@ function Tv() {
     return (
       <button type="button" onClick={() => setArmed(true)} className="stage-bg grid h-dvh w-dvw place-items-center text-center">
         <span className="flex flex-col items-center">
-          <BrandLogo className="h-[18vmin]" wordmarkSize="lg" />
+          <BrandLogo className="h-[34vmin]" wordmarkSize="lg" />
           <span className="text-display mt-[3vmin] block text-[8vmin] uppercase leading-none">Karaoke Night</span>
           <span className="mt-[4vmin] inline-block rounded-full bg-brand-500 px-[4vmin] py-[1.5vmin] text-[2vmin] font-bold uppercase tracking-[0.2em] text-white shadow-glow">
             Activar pantalla
@@ -102,7 +108,7 @@ function Tv() {
     <div className="stage-bg flex h-dvh w-dvw flex-col overflow-hidden p-[2vmin] text-ink-100">
       <header className="flex items-center justify-between px-[1vmin] pb-[1.5vmin]">
         <div className="flex items-center gap-[2vmin]">
-          <BrandLogo className="h-[6vmin]" wordmarkSize="md" />
+          <LogoCarousel intervalMs={logoEvery} className="h-[9vmin] w-[14vmin]" />
           <p className="text-display text-[3.2vmin] uppercase tracking-wider text-brand-400">Karaoke Night</p>
         </div>
         <p className="inline-flex items-center gap-2 text-[1.8vmin] text-ink-300">
@@ -139,9 +145,9 @@ function Tv() {
           </div>
           <aside className="surface-brand flex flex-col items-center rounded-[2vmin] p-[2vmin] text-center">
             <p className="eyebrow text-[1.5vmin]">Ahora canta</p>
-            <Selfie entry={playing} className="mt-[2vmin] size-[20vmin] rounded-[2vmin]" />
+            <Selfie entry={playing} className="mt-[1.5vmin] h-[30vmin] w-[20vmin] rounded-[1.5vmin]" />
             <p className="text-display mt-[2vmin] text-[4.5vmin] uppercase leading-none">{playing.participant.displayName}</p>
-            <p className="text-[2vmin] font-bold text-brand-400">Mesa {playing.participant.tableNumber}</p>
+            <p className="text-[2vmin] font-bold text-brand-400">{tableLabel(playing.participant.tableNumber)}</p>
             <div className="mt-[3vmin] border-t border-brand-500/30 pt-[2vmin]">
               <p className="text-[2.4vmin] font-bold uppercase leading-tight">{playing.song.title}</p>
               <p className="text-[1.8vmin] text-ink-300">{playing.song.artistGuess}</p>
@@ -156,11 +162,11 @@ function Tv() {
           <section className="surface flex min-h-0 flex-col rounded-[2vmin] p-[3vmin]">
             {lastResult ? (
               <div className="surface-brand mb-[2vmin] flex items-center gap-[3vmin] rounded-[1.5vmin] p-[2vmin] animate-rise">
-                <Selfie entry={lastResult} className="size-[12vmin] rounded-[1.5vmin]" />
+                <Selfie entry={lastResult} className="h-[18vmin] w-[12vmin] rounded-[1.5vmin]" />
                 <div className="min-w-0 flex-1">
                   <p className="eyebrow text-[1.5vmin]">Resultado</p>
                   <p className="text-display truncate text-[4vmin] uppercase leading-none">
-                    {lastResult.participant.displayName} · Mesa {lastResult.participant.tableNumber}
+                    {lastResult.participant.displayName} · {tableLabel(lastResult.participant.tableNumber)}
                   </p>
                   <p className="truncate text-[1.9vmin] text-ink-300">{lastResult.song.title}</p>
                 </div>
@@ -184,8 +190,8 @@ function Tv() {
             <p className="eyebrow text-[1.6vmin]">{queue.length ? "Siguiente" : "Próximos turnos"}</p>
             {queue.length === 0 ? (
               <div className="grid flex-1 place-items-center text-center">
-                <div>
-                  <Mic2 className="mx-auto size-[10vmin] text-brand-500 animate-float" />
+                <div className="flex flex-col items-center">
+                  <LogoCarousel intervalMs={logoEvery} className="h-[34vmin] w-[50vmin]" />
                   <p className="text-display mt-[2vmin] text-[6vmin] uppercase">La noche es tuya</p>
                   <p className="text-[2vmin] text-ink-300">Escanea el QR, elige tu canción y entra a la fila.</p>
                 </div>
@@ -201,7 +207,7 @@ function Tv() {
                     <Selfie entry={e} className={`${i === 0 ? "size-[10vmin]" : "size-[7vmin]"} rounded-[1.2vmin]`} />
                     <div className="min-w-0">
                       <p className={`text-display truncate uppercase leading-none ${i === 0 ? "text-[4.2vmin]" : "text-[3.2vmin]"}`}>
-                        {e.participant.displayName} · Mesa {e.participant.tableNumber}
+                        {e.participant.displayName} · {tableLabel(e.participant.tableNumber)}
                       </p>
                       <p className="truncate text-[1.9vmin] text-ink-300">
                         {e.song.title} · {e.song.artistGuess}
@@ -218,6 +224,7 @@ function Tv() {
             )}
           </section>
           <section className="surface-brand flex flex-col rounded-[2vmin] p-[3vmin]">
+            {queue.length > 0 ? <LogoCarousel intervalMs={logoEvery} className="mb-[2vmin] h-[16vmin] w-full" /> : null}
             <p className="eyebrow inline-flex items-center gap-2 text-[1.6vmin]">
               <Trophy className="size-[2vmin]" /> Ranking de la noche
             </p>
@@ -232,7 +239,7 @@ function Tv() {
                     <span className="text-display w-[5vmin] text-[4.5vmin] text-brand-500">#{i + 1}</span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[2.4vmin] font-bold uppercase">
-                        {e.participant.displayName} · Mesa {e.participant.tableNumber}
+                        {e.participant.displayName} · {tableLabel(e.participant.tableNumber)}
                       </p>
                       <p className="truncate text-[1.7vmin] text-ink-300">{e.song.title}</p>
                     </div>
@@ -249,7 +256,7 @@ function Tv() {
         <div className="inline-block animate-marquee">
           {Array.from({ length: 2 }).map((_, i) => (
             <span key={i} className="inline-block pr-[6vmin]">
-              Cacho e&apos; Cabra ★ Karaoke Night ★ 1 voto por celular ★ Ranking en vivo ★ Tu mesa puede ser la campeona ★
+              Cacho e&apos; Cabra ★ Karaoke Night ★ 1 voto por celular ★ Ranking en vivo ★ Tu mesa puede ser la campeona ★{beat.listening ? " ★ Al ritmo del local" : ""}
             </span>
           ))}
         </div>

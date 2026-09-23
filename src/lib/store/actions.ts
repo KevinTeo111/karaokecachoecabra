@@ -23,6 +23,8 @@ export type AdminAction =
   | { type: "session/setStatus"; status: SessionStatus }
   | { type: "session/updateSettings"; patch: Partial<SessionSettings> }
   | { type: "session/new"; name: string }
+  | { type: "session/setTableCount"; count: number }
+  | { type: "request/hostAdd"; songId: string; displayName: string }
   | { type: "request/approve"; requestId: string }
   | { type: "request/reject"; requestId: string; reason: string }
   | { type: "request/cancel"; requestId: string }
@@ -46,6 +48,8 @@ export const ADMIN_ACTION_TYPES = new Set<Action["type"]>([
   "session/setStatus",
   "session/updateSettings",
   "session/new",
+  "session/setTableCount",
+  "request/hostAdd",
   "request/approve",
   "request/reject",
   "request/replaceSong",

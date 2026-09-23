@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScreenHeader } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
+import { SELFIE_FRAME_SRC } from "@/components/brand/logo";
 import { renderFramedSelfie } from "@/lib/selfie/frame";
 import { useDraft } from "@/lib/store/draft";
 
@@ -12,15 +13,13 @@ type CameraState = "starting" | "ready" | "denied";
 
 export default function SelfiePage() {
   const router = useRouter();
-  const { draft, update } = useDraft();
+  const { update } = useDraft();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [camera, setCamera] = useState<CameraState>("starting");
   const [shot, setShot] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
-
-  const caption = `Mesa ${draft.tableNumber || "?"} · ${draft.displayName || "Cantante"}`;
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -52,7 +51,7 @@ export default function SelfiePage() {
 
   const capture = async () => {
     if (!videoRef.current) return;
-    const shot = await renderFramedSelfie(videoRef.current, caption);
+    const shot = await renderFramedSelfie(videoRef.current);
     setShot(shot);
     stopCamera();
   };
@@ -61,7 +60,7 @@ export default function SelfiePage() {
     if (!file) return;
     const img = new Image();
     img.onload = async () => {
-      setShot(await renderFramedSelfie(img, caption, 720, false));
+      setShot(await renderFramedSelfie(img, 900, false));
       URL.revokeObjectURL(img.src);
     };
     img.src = URL.createObjectURL(file);
@@ -77,14 +76,15 @@ export default function SelfiePage() {
     <div className="flex flex-1 flex-col">
       <ScreenHeader title="Tu selfie" subtitle="Marco automático Cacho e' Cabra" />
 
-      <div className="relative mx-auto mt-6 aspect-square w-full max-w-xs overflow-hidden rounded-3xl bg-ink-800 shadow-glow">
+      <div className="relative mx-auto mt-6 aspect-[2/3] w-full max-w-[17rem] overflow-hidden rounded-2xl bg-ink-950 shadow-glow">
         {shot ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={shot} alt="Selfie con marco" className="size-full object-cover animate-rise" />
         ) : (
           <>
-            <video ref={videoRef} playsInline muted className="size-full -scale-x-100 object-cover" />
-            <FrameOverlay caption={caption} />
+            <video ref={videoRef} playsInline muted className="absolute inset-x-[5.4%] top-[17.6%] h-[62.8%] w-[89.1%] -scale-x-100 rounded-[4%] object-cover" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={SELFIE_FRAME_SRC} alt="" className="pointer-events-none absolute inset-0 size-full" draggable={false} />
             {camera === "starting" ? (
               <div className="absolute inset-0 grid place-items-center bg-ink-900/70 text-sm text-ink-300">
                 Activando cámara…
@@ -157,15 +157,3 @@ export default function SelfiePage() {
   );
 }
 
-function FrameOverlay({ caption }: { caption: string }) {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between rounded-3xl border-[6px] border-brand-500 p-5">
-      <span className="rounded-full bg-ink-950/70 px-3 py-1 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white">
-        ★ Karaoke Night ★
-      </span>
-      <span className="rounded-full bg-ink-950/60 px-3 py-1 text-xs font-bold uppercase tracking-widest text-ink-100">
-        {caption}
-      </span>
-    </div>
-  );
-}

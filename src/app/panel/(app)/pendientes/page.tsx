@@ -9,7 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, Label } from "@/components/ui/input";
 import type { QueueEntry } from "@/lib/domain/types";
 import { selectPending, useDispatch, useSessionState } from "@/lib/store/hooks";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, tableLabel } from "@/lib/utils";
 
 const REASONS = ["Versión sin letra", "Video no disponible", "Canción repetida esta noche", "Contenido no apto"];
 
@@ -46,7 +46,7 @@ export default function PendientesPage() {
               <Avatar participant={e.participant} className="size-14 rounded-xl" />
               <div className="min-w-0 flex-1">
                 <p className="font-bold">
-                  {e.participant.displayName} <span className="font-normal text-ink-400">· Mesa {e.participant.tableNumber}</span>
+                  {e.participant.displayName} <span className="font-normal text-ink-400">· {tableLabel(e.participant.tableNumber)}</span>
                 </p>
                 <p className="truncate text-sm text-ink-300">
                   {e.song.title} · {e.song.artistGuess}

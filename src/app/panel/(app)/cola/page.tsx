@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, PhoneCall, Play, Replace, XCircle } from "lucide-react";
+import { ArrowDown, ArrowUp, Mic2, PhoneCall, Play, Replace, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ActionError, Avatar, ConfirmButton, EmptyState, SectionTitle } from "@/components/panel/bits";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { STATUS_LABEL } from "@/lib/domain/state-machine";
 import type { QueueEntry, Song } from "@/lib/domain/types";
 import { selectPlaying, selectQueue, useDispatch, useSessionState } from "@/lib/store/hooks";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, tableLabel } from "@/lib/utils";
 
 export default function ColaPage() {
   const state = useSessionState();
@@ -21,6 +21,29 @@ export default function ColaPage() {
   const [replacing, setReplacing] = useState<QueueEntry | null>(null);
   const [q, setQ] = useState("");
   const [replacements, setReplacements] = useState<Song[]>([]);
+  const [hostQ, setHostQ] = useState("");
+  const [hostName, setHostName] = useState("Animador");
+  const [hostResults, setHostResults] = useState<Song[]>([]);
+
+  useEffect(() => {
+    if (hostQ.trim().length < 3) {
+      setHostResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const t = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(hostQ.trim())}`, { signal: controller.signal });
+        if (res.ok) setHostResults((await res.json()) as Song[]);
+      } catch {
+        /* aborted */
+      }
+    }, 400);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [hostQ]);
 
   useEffect(() => {
     if (q.trim().length < 3) {
@@ -44,13 +67,14 @@ export default function ColaPage() {
 
   const run = (action: Parameters<typeof dispatch>[0]) => void dispatch(action).then(setError);
 
-  const move = (index: number, delta: number) => {
+  const moveTo = (index: number, target: number) => {
     const ids = queue.map((e) => e.request.id);
-    const target = index + delta;
-    if (target < 0 || target >= ids.length) return;
-    [ids[index], ids[target]] = [ids[target], ids[index]];
+    if (target < 0 || target >= ids.length || target === index) return;
+    const [id] = ids.splice(index, 1);
+    ids.splice(target, 0, id);
     run({ type: "queue/reorder", orderedIds: ids, expectedVersion: state.queueVersion });
   };
+  const move = (index: number, delta: number) => moveTo(index, index + delta);
 
   return (
     <section className="max-w-4xl">
@@ -82,11 +106,26 @@ export default function ColaPage() {
                   <ArrowDown className="size-4" />
                 </button>
               </div>
-              <span className="w-6 text-display text-3xl text-brand-500">{i + 1}</span>
+              <input
+                type="number"
+                min={1}
+                max={queue.length}
+                defaultValue={i + 1}
+                key={`${e.request.id}-${i}`}
+                title="Escribe la posición y presiona Enter"
+                onKeyDown={(ev) => {
+                  if (ev.key === "Enter") moveTo(i, Number((ev.target as HTMLInputElement).value) - 1);
+                }}
+                onBlur={(ev) => {
+                  const n = Number(ev.target.value) - 1;
+                  if (n !== i) moveTo(i, n);
+                }}
+                className="text-display w-14 rounded-lg border border-white/10 bg-ink-800 text-center text-2xl text-brand-500 focus:border-brand-500 focus:outline-none"
+              />
               <Avatar participant={e.participant} className="size-11 rounded-lg" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">
-                  {e.participant.displayName} <span className="font-normal text-ink-400">· Mesa {e.participant.tableNumber}</span>
+                  {e.participant.displayName} <span className="font-normal text-ink-400">· {tableLabel(e.participant.tableNumber)}</span>
                 </p>
                 <p className="truncate text-sm text-ink-300">
                   {e.song.title} · {e.song.artistGuess}{" "}
@@ -121,6 +160,43 @@ export default function ColaPage() {
           ))}
         </ol>
       )}
+
+      <form
+        className="surface mt-6 rounded-2xl p-4"
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <p className="eyebrow mb-3 inline-flex items-center gap-2">
+          <Mic2 className="size-3.5" /> Canción del animador
+        </p>
+        <div className="grid gap-2 sm:grid-cols-[1fr_12rem]">
+          <Input value={hostQ} onChange={(e) => setHostQ(e.target.value)} placeholder="Buscar canción para el animador…" />
+          <Input value={hostName} onChange={(e) => setHostName(e.target.value.slice(0, 24))} placeholder="Nombre en pantalla" />
+        </div>
+        {hostResults.length ? (
+          <ul className="mt-2 max-h-56 divide-y divide-white/5 overflow-y-auto">
+            {hostResults.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    run({ type: "request/hostAdd", songId: s.id, displayName: hostName.trim() || "Animador" });
+                    setHostQ("");
+                    setHostResults([]);
+                  }}
+                  className="flex w-full items-center justify-between gap-3 px-1 py-2 text-left text-sm hover:text-brand-400"
+                >
+                  <span className="truncate">
+                    {s.title} <span className="text-ink-400">· {s.artistGuess || s.channelTitle}</span>
+                  </span>
+                  <span className="text-xs tabular-nums text-ink-400">{formatDuration(s.durationSec)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs text-ink-400">Entra directo a la cola, sin selfie ni aprobación. Luego muévela a la posición que quieras.</p>
+        )}
+      </form>
 
       <Dialog open={replacing !== null} onOpenChange={(o) => !o && setReplacing(null)}>
         {replacing ? (

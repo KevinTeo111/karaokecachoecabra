@@ -5,7 +5,7 @@ import { Stars } from "@/components/brand/wordmark";
 import { Badge } from "@/components/ui/badge";
 import { STATUS_LABEL } from "@/lib/domain/state-machine";
 import { selectHistory, selectRanking, useSessionState } from "@/lib/store/hooks";
-import { formatRating } from "@/lib/utils";
+import { formatRating, tableLabel } from "@/lib/utils";
 
 const TONE = { COMPLETED: "success", SKIPPED: "neutral", REJECTED: "danger", CANCELLED: "neutral" } as const;
 
@@ -27,7 +27,7 @@ export default function HistorialPage() {
                 <Avatar participant={e.participant} className="size-10 rounded-lg" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">
-                    {e.participant.displayName} <span className="font-normal text-ink-400">· Mesa {e.participant.tableNumber}</span>
+                    {e.participant.displayName} <span className="font-normal text-ink-400">· {tableLabel(e.participant.tableNumber)}</span>
                   </p>
                   <p className="truncate text-sm text-ink-300">
                     {e.song.title} · {e.song.artistGuess}
@@ -59,7 +59,7 @@ export default function HistorialPage() {
                 <span className="w-8 text-display text-3xl text-brand-500">#{i + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">
-                    {e.participant.displayName} · Mesa {e.participant.tableNumber}
+                    {e.participant.displayName} · {tableLabel(e.participant.tableNumber)}
                   </p>
                   <p className="truncate text-xs text-ink-400">{e.song.title}</p>
                 </div>

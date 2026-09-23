@@ -17,7 +17,7 @@ import {
   useServerNow,
   useSessionState,
 } from "@/lib/store/hooks";
-import { formatDuration, formatRating } from "@/lib/utils";
+import { formatDuration, formatRating, tableLabel } from "@/lib/utils";
 
 export default function AhoraPage() {
   const state = useSessionState();
@@ -48,7 +48,7 @@ export default function AhoraPage() {
                   <Avatar participant={playing.participant} className="size-20 rounded-2xl" />
                   <div className="min-w-0 flex-1">
                     <p className="text-display text-4xl uppercase">
-                      {playing.participant.displayName} · Mesa {playing.participant.tableNumber}
+                      {playing.participant.displayName} · {tableLabel(playing.participant.tableNumber)}
                     </p>
                     <p className="text-ink-400">
                       {playing.song.title} · {playing.song.artistGuess}
@@ -111,7 +111,7 @@ export default function AhoraPage() {
               <Avatar participant={next.participant} className="size-16 rounded-2xl" />
               <div className="min-w-0 flex-1">
                 <p className="text-display text-3xl uppercase">
-                  {next.participant.displayName} · Mesa {next.participant.tableNumber}
+                  {next.participant.displayName} · {tableLabel(next.participant.tableNumber)}
                 </p>
                 <p className="text-sm text-ink-400">
                   {next.song.title} · {next.song.artistGuess} · {formatDuration(next.song.durationSec)}
@@ -161,7 +161,7 @@ export default function AhoraPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">
                       {e.participant.displayName}{" "}
-                      <span className="font-normal text-ink-400">· Mesa {e.participant.tableNumber}</span>
+                      <span className="font-normal text-ink-400">· {tableLabel(e.participant.tableNumber)}</span>
                     </p>
                     <p className="truncate text-xs text-ink-400">{e.song.title}</p>
                   </div>
@@ -182,7 +182,7 @@ export default function AhoraPage() {
                   <Trophy className={i === 0 ? "size-4 text-brand-400" : "size-4 text-ink-500"} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">
-                      {e.participant.displayName} · Mesa {e.participant.tableNumber}
+                      {e.participant.displayName} · {tableLabel(e.participant.tableNumber)}
                     </p>
                     <p className="truncate text-xs text-ink-400">{e.song.title}</p>
                   </div>

@@ -131,6 +131,8 @@ export interface SessionState {
   session: KaraokeSession;
   settings: SessionSettings;
   queueVersion: number;
+  /** Active guest tables (1..N). */
+  tableCount: number;
   songs: Song[];
   participants: Participant[];
   requests: KaraokeRequest[];

@@ -8,7 +8,7 @@ import { ScreenHeader, StarIcon } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 import type { Vote } from "@/lib/domain/types";
 import { selectPlaying, useDispatch, useSessionState } from "@/lib/store/hooks";
-import { cn } from "@/lib/utils";
+import { cn, tableLabel } from "@/lib/utils";
 
 const LABELS = ["", "Ánimo", "Bien", "Muy bien", "Excelente", "¡Ídolo!"];
 
@@ -64,7 +64,7 @@ export default function VotarPage() {
           </span>
         )}
         <p className="text-display mt-4 text-3xl uppercase">{playing.participant.displayName}</p>
-        <p className="text-xs text-ink-400">Mesa {playing.participant.tableNumber}</p>
+        <p className="text-xs text-ink-400">{tableLabel(playing.participant.tableNumber)}</p>
         <p className="mt-3 text-sm font-bold">
           {playing.song.title} · {playing.song.artistGuess}
         </p>

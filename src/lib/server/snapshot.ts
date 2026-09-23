@@ -91,7 +91,7 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
   const songIds = [...new Set(reqs.map((r) => r.song_id))];
   const requestIds = reqs.map((r) => r.id);
 
-  const [parts, songs, perfs] = await Promise.all([
+  const [parts, songs, perfs, tables] = await Promise.all([
     participantIds.length
       ? db.from("participants").select("id,device_session_id,display_name,table_number,selfie_path").in("id", participantIds)
       : Promise.resolve({ data: [], error: null }),
@@ -101,6 +101,7 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
     requestIds.length
       ? db.from("performances").select("*").in("request_id", requestIds)
       : Promise.resolve({ data: [], error: null }),
+    db.rpc("table_count"),
   ]);
   if (parts.error) throw parts.error;
   if (songs.error) throw songs.error;
@@ -211,6 +212,7 @@ export async function buildSnapshot(deviceId: string | null, admin: boolean): Pr
     session,
     settings: settingsOf(row),
     queueVersion: row.queue_version,
+    tableCount: Number(tables.data ?? 30),
     songs: songList,
     participants,
     requests,

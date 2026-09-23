@@ -12,6 +12,7 @@ interface YTPlayer {
   getDuration(): number;
   mute(): void;
   destroy(): void;
+  unloadModule?(name: string): void;
 }
 interface YTNamespace {
   Player: new (
@@ -112,15 +113,23 @@ export const YouTubePlayer = forwardRef(function YouTubePlayer(
           modestbranding: 1,
           playsinline: 1,
           iv_load_policy: 3,
+          cc_load_policy: 0,
           start: Math.floor(startAt),
           origin: window.location.origin,
         },
         events: {
           onReady: (e) => {
             if (muted) e.target.mute();
+            // Karaoke videos carry their own lyrics; the caption track only gets in the way.
+            e.target.unloadModule?.("captions");
+            e.target.unloadModule?.("cc");
             callbacks.current.onReady?.();
           },
           onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) {
+              playerRef.current?.unloadModule?.("captions");
+              playerRef.current?.unloadModule?.("cc");
+            }
             if (e.data === YT.PlayerState.ENDED) callbacks.current.onEnded?.();
             if (e.data === YT.PlayerState.PLAYING && timer === undefined) {
               timer = window.setInterval(() => {

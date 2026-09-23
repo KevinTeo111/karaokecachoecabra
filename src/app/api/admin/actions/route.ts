@@ -97,6 +97,24 @@ export async function POST(req: NextRequest) {
           p_expected_version: Number.isInteger(action.expectedVersion) ? action.expectedVersion : null,
         });
         break;
+      case "session/setTableCount": {
+        assert(Number.isInteger(action.count) && action.count >= 1 && action.count <= 500, "Cantidad de mesas inválida");
+        await rpc("set_table_count", { p_count: action.count });
+        detail = `${action.count} mesas`;
+        break;
+      }
+      case "request/hostAdd": {
+        assert(isUuid(action.songId), "Canción inválida");
+        const { data, error } = await db.rpc("create_host_request", {
+          p_session: session.id,
+          p_song: action.songId,
+          p_name: String(action.displayName ?? "").slice(0, 24),
+        });
+        if (error) throw error;
+        entityId = String(data);
+        detail = "canción del animador";
+        break;
+      }
       case "song/addByUrl": {
         const videoId = parseVideoId(String(action.url ?? ""));
         assert(videoId, "Enlace de YouTube inválido");

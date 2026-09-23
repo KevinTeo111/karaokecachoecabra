@@ -11,10 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import type { SessionSettings } from "@/lib/domain/types";
 import { useDispatch, useSessionState } from "@/lib/store/hooks";
 
-const TABLES = 20;
-
 export default function ConfiguracionPage() {
-  const { settings, session, audit, tvKey } = useSessionState();
+  const { settings, session, audit, tvKey, tableCount } = useSessionState();
+  const [tables, setTables] = useState(String(tableCount));
   const dispatch = useDispatch();
   const [copied, setCopied] = useState<number | null>(null);
 
@@ -58,6 +57,23 @@ export default function ConfiguracionPage() {
         {numberField("minVotesForRanking", "Mínimo de votos para ranking", "Presentaciones con menos votos no entran al ranking.", 1, 50)}
         {numberField("maxActiveRequestsPerDevice", "Solicitudes activas por celular", "Cuántas canciones puede tener pendientes o en cola un mismo celular.", 1, 5)}
         {numberField("fallbackSearchCapPerNight", "Consultas de respaldo a YouTube por noche", "No limita a los clientes: ellos buscan en el catálogo local sin límite. Solo cuenta las veces que el sistema consulta YouTube cuando una canción no está en el catálogo (100 unidades cada una).", 0, 90)}
+        <form
+          className="surface rounded-2xl p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const n = Number(tables);
+            if (Number.isInteger(n) && n >= 1 && n <= 500) void dispatch({ type: "session/setTableCount", count: n }).then((err) => err && window.alert(err));
+          }}
+        >
+          <Label htmlFor="tables">Cantidad de mesas</Label>
+          <div className="flex gap-2">
+            <Input id="tables" type="number" min={1} max={500} value={tables} onChange={(e) => setTables(e.target.value)} />
+            <Button type="submit" variant="outline" size="md" disabled={Number(tables) === tableCount}>
+              Guardar
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-ink-400">Los clientes solo pueden elegir mesas del 1 al {tableCount}. Un mismo QR sirve para todas.</p>
+        </form>
         <label className="surface flex items-center justify-between gap-4 rounded-2xl p-4">
           <span>
             <span className="block text-sm font-bold">Bloquear voto de la misma mesa</span>
@@ -82,7 +98,7 @@ export default function ConfiguracionPage() {
           <SectionTitle>QR por mesa</SectionTitle>
           <p className="mb-3 text-xs text-ink-400">Cada mesa tiene su enlace con la mesa preseleccionada. Los QR impresos se generan en el paso 3 del plan.</p>
           <ul className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-            {Array.from({ length: TABLES }, (_, i) => i + 1).map((t) => (
+            {Array.from({ length: tableCount }, (_, i) => i + 1).map((t) => (
               <li key={t}>
                 <button
                   type="button"

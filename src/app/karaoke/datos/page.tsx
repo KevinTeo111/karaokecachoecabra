@@ -8,12 +8,13 @@ import { ScreenHeader, Wordmark } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useDraft } from "@/lib/store/draft";
-import { useHydrated } from "@/lib/store/hooks";
+import { useHydrated, useSessionState } from "@/lib/store/hooks";
 
 export default function DatosPage() {
   const router = useRouter();
   const { draft, update } = useDraft();
   const hydrated = useHydrated();
+  const { tableCount } = useSessionState();
 
   useEffect(() => {
     if (hydrated && !draft.song) router.replace("/karaoke/buscar");
@@ -21,7 +22,7 @@ export default function DatosPage() {
 
   const name = draft.displayName.trim();
   const table = Number(draft.tableNumber);
-  const valid = name.length >= 2 && name.length <= 24 && Number.isInteger(table) && table >= 1 && table <= 200;
+  const valid = name.length >= 2 && name.length <= 24 && Number.isInteger(table) && table >= 1 && table <= tableCount;
   const ready = valid && draft.selfieUrl !== null;
 
   return (
@@ -52,7 +53,7 @@ export default function DatosPage() {
             id="table"
             value={draft.tableNumber}
             onChange={(e) => update({ tableNumber: e.target.value.replace(/\D/g, "").slice(0, 3) })}
-            placeholder="Ej. 8"
+            placeholder={`1 a ${tableCount}`}
             inputMode="numeric"
           />
         </div>

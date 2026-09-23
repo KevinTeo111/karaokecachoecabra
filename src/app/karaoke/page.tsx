@@ -34,7 +34,7 @@ function Inicio() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex flex-col items-center text-center animate-rise">
-        <BrandLogo className="h-20" wordmarkSize="lg" />
+        <BrandLogo className="h-36" wordmarkSize="lg" />
         <h1 className="text-display mt-4 text-5xl uppercase text-ink-100">Karaoke</h1>
         <p className="mt-2 max-w-xs text-sm text-ink-400">Escanea, canta y compite con tu mesa</p>
       </header>

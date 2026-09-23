@@ -26,3 +26,9 @@ export function formatRating(value: number | null) {
 export function thumbnailUrl(youtubeVideoId: string) {
   return `https://i.ytimg.com/vi/${youtubeVideoId}/hqdefault.jpg`;
 }
+
+/** Table 999 is reserved for the animador's own songs. */
+export const HOST_TABLE = 999;
+export function tableLabel(n: number) {
+  return n === HOST_TABLE ? "Animador" : `Mesa ${n}`;
+}
