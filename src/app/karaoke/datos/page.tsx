@@ -62,12 +62,12 @@ export default function DatosPage() {
           <Label>Selfie del cantante</Label>
           <Link
             href="/karaoke/selfie"
-            className="group relative block aspect-[4/3] overflow-hidden rounded-2xl border-2 border-dashed border-brand-500/60 bg-ink-800 transition hover:border-brand-400"
+            className="group relative mx-auto block aspect-[2/3] w-full max-w-[14rem] overflow-hidden rounded-2xl border-2 border-dashed border-brand-500/60 bg-ink-800 transition hover:border-brand-400"
           >
             {draft.selfieUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={draft.selfieUrl} alt="Tu selfie" className="size-full object-cover" />
+                <img src={draft.selfieUrl} alt="Tu selfie" className="size-full object-contain" />
                 <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-ink-950/70 py-2 text-[0.7rem] font-bold uppercase tracking-widest text-ink-100">
                   <RefreshCw className="size-3" /> Repetir
                 </span>

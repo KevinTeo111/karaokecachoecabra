@@ -68,7 +68,7 @@ export default function VotarPage() {
       <div className="surface mt-8 flex flex-col items-center rounded-2xl p-6 text-center animate-rise">
         {playing.participant.selfieUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={playing.participant.selfieUrl} alt="" className="size-24 rounded-2xl object-cover shadow-glow" />
+          <img src={playing.participant.selfieUrl} alt="" className="h-36 w-24 rounded-xl object-cover shadow-glow" />
         ) : (
           <span className="grid size-24 place-items-center rounded-2xl bg-ink-700 text-brand-400">
             <Mic2 className="size-8" />

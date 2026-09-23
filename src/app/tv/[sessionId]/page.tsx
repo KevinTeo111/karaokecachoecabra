@@ -278,7 +278,7 @@ function Tv() {
         <div className="inline-block animate-marquee">
           {Array.from({ length: 2 }).map((_, i) => (
             <span key={i} className="inline-block pr-[6vmin]">
-              Cacho e&apos; Cabra ★ Karaoke Night ★ 1 voto por celular ★ Ranking en vivo ★ Tu mesa puede ser la campeona ★{beat.listening ? " ★ Al ritmo del local" : ""}
+              Cacho e&apos; Cabra ★ Karaoke Night ★ 1 voto por celular ★ Ranking en vivo ★ Tu mesa puede ser la campeona ★{beat.listening ? " ★ Al ritmo de Cacho e' Cabra Restaurant" : ""}
             </span>
           ))}
         </div>

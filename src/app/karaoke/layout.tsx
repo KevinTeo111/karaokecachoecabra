@@ -5,7 +5,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <SessionGate>
       <div className="stage-bg min-h-dvh">
-        <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-28 pt-8 safe-bottom">{children}</main>
+        <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-8 pb-[calc(7rem+env(safe-area-inset-bottom))]">{children}</main>
         <NowPlayingBanner />
       </div>
     </SessionGate>
